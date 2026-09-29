@@ -1,0 +1,14 @@
+{
+  "name": "libras-tradutor-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extensão de navegador que reconhece o alfabeto de Libras via webcam (fase 1: só letras, sem backend).",
+  "scripts": {
+    "vendor": "node build/vendor.cjs",
+    "test": "node test/gestureRecorder.test.mjs && node test/parity.test.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.14"
+  }
+}

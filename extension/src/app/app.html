@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sorria e Acene — alfabeto em Libras</title>
+    <link rel="stylesheet" href="app.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <img class="lockup" src="../../icons/lockup.svg" alt="Sorria e Acene" />
+      </div>
+      <p class="privacy" title="Nenhum quadro da câmera é enviado para fora">
+        <span class="dot" aria-hidden="true"></span>
+        tudo roda nesta máquina
+      </p>
+    </header>
+
+    <main>
+      <section class="stage-wrap">
+        <div class="stage">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas id="overlay"></canvas>
+          <div class="stage-state" id="stage-state" data-state="loading">
+            <span class="pulse" aria-hidden="true"></span>
+            <span id="stage-state-text">Carregando…</span>
+          </div>
+        </div>
+        <p class="status" id="status">Carregando modelos…</p>
+      </section>
+
+      <section class="readout">
+        <div class="readout-head">
+          <h2>Letra</h2>
+          <span class="source" id="letter-source"></span>
+        </div>
+
+        <div class="letter-card" id="letter-card">
+          <div class="letter" id="letter">—</div>
+        </div>
+
+        <div class="meter" role="img" aria-label="Confiança do reconhecimento">
+          <div class="meter-fill" id="meter-fill"></div>
+        </div>
+        <p class="meter-label"><span id="confidence">sem leitura</span></p>
+
+        <div class="word-block">
+          <div class="readout-head">
+            <h2>Soletrando</h2>
+            <div class="word-actions">
+              <button id="copy-word" class="ghost" disabled>Copiar</button>
+              <button id="clear-word" class="ghost" disabled>Limpar</button>
+            </div>
+          </div>
+          <output class="word" id="word" aria-live="polite"></output>
+          <p class="word-hint">Sorria para confirmar a letra e somá-la à palavra.</p>
+        </div>
+      </section>
+    </main>
+
+    <section class="rail-wrap">
+      <div class="rail-head">
+        <h2>Alfabeto</h2>
+        <div class="legend">
+          <span><i class="key key-pose"></i> pose</span>
+          <span><i class="key key-move"></i> movimento</span>
+          <span><i class="key key-off"></i> sem treino</span>
+        </div>
+      </div>
+      <div class="rail" id="rail"></div>
+    </section>
+
+    <footer class="footer">
+      <label class="toggle">
+        <input type="checkbox" id="speech-toggle" checked />
+        Falar a letra em voz alta
+      </label>
+      <div class="samples">
+        <span id="confirm-count">Nenhuma amostra confirmada</span>
+        <button id="download-samples" class="ghost" disabled>Baixar CSV</button>
+      </div>
+    </footer>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

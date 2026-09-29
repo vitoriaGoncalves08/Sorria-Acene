@@ -1,0 +1,499 @@
+/* Paleta tirada da própria logo: o azul quase-preto do fundo, o laranja do
+   bico, o branco-osso da barriga. O ciano é o "a máquina está te vendo" —
+   mesma cor do esqueleto desenhado sobre a mão, para a tela e o vídeo
+   falarem a mesma língua. */
+:root {
+  --ink: #12161d;
+  --surface: #1a1f28;
+  --surface-2: #232a36;
+  --line: #2f3746;
+  --bone: #faf8f5;
+  --muted: #7a8396;
+  --beak: #f2903f;
+  --track: #4fd1e0;
+
+  --radius: 14px;
+  --gap: 1.25rem;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: 1.5rem clamp(1rem, 4vw, 2.5rem) 2rem;
+  background: var(--ink);
+  color: var(--bone);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--gap);
+}
+
+/* teto de largura: em monitor ultralargo, sem isso tudo estica e fica solto */
+body > * {
+  width: 100%;
+  max-width: 1400px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* ---------- topo ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+/* o lockup é o arquivo original do design (icons/lockup.svg), usado como
+   imagem para não haver risco de eu redesenhá-lo errado */
+.lockup {
+  height: 46px;
+  width: auto;
+  display: block;
+}
+
+.privacy {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.privacy .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--track);
+}
+
+/* ---------- layout principal ---------- */
+
+main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+  gap: var(--gap);
+  align-items: start;
+}
+
+/* ---------- vídeo ---------- */
+
+.stage-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  /* O limite é de LARGURA, derivado da altura máxima pela própria proporção
+     4:3. Limitar só a altura achataria a caixa (o vídeo viraria uma tira
+     horizontal recortada); amarrando as duas, o quadro continua 4:3 em
+     qualquer janela, só muda de tamanho. */
+  width: 100%;
+  max-width: calc(74vh * 4 / 3);
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+#webcam,
+#overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* espelha, como um espelho de verdade */
+}
+
+.stage-state {
+  position: absolute;
+  left: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(18, 22, 29, 0.82);
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+  color: var(--bone);
+  backdrop-filter: blur(6px);
+}
+
+.stage-state .pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: none;
+}
+
+.stage-state[data-state="tracking"] .pulse {
+  background: var(--track);
+}
+.stage-state[data-state="gesture"] .pulse {
+  background: var(--beak);
+  animation: blink 0.8s steps(2, end) infinite;
+}
+.stage-state[data-state="idle"] .pulse {
+  background: var(--muted);
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.status {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ---------- leitura ---------- */
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.readout-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.source {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.letter-card {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 5 / 2;
+  padding: 0.5rem;
+  background: var(--surface-2);
+  border-radius: 10px;
+  transition: background 140ms ease;
+}
+
+.letter {
+  font-size: clamp(4rem, 17vw, 7.5rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.85;
+  color: #fff;
+}
+
+.letter[data-empty="true"] {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.letter-card[data-confirmed="true"] {
+  background: color-mix(in srgb, var(--beak) 22%, var(--surface-2));
+}
+
+.letter-card[data-confirmed="true"] .letter {
+  color: var(--beak);
+}
+
+.meter {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.meter-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--track);
+  border-radius: inherit;
+  transition: width 120ms linear;
+}
+
+.meter-label {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- palavra ---------- */
+
+.word-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+}
+
+.word-actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.word {
+  display: block;
+  min-height: 2.6rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  word-break: break-all;
+}
+
+.word:empty::after {
+  content: "—";
+  color: var(--muted);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.word-hint {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ---------- alfabeto (o painel que mostra o que o app sabe) ---------- */
+
+.rail-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.1rem 1.15rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.legend {
+  display: flex;
+  gap: 0.9rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* as chaves da legenda imitam os próprios slots, senão a legenda explica
+   algo que não se parece com o que está logo abaixo */
+.key {
+  position: relative;
+  width: 13px;
+  height: 13px;
+  border-radius: 4px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+}
+.key-move::after {
+  content: "";
+  position: absolute;
+  top: 1.5px;
+  right: 2px;
+  width: 3px;
+  height: 3px;
+  border-top: 1.5px solid var(--beak);
+  border-right: 1.5px solid var(--beak);
+  transform: rotate(45deg);
+}
+.key-off {
+  background: transparent;
+  border: 1px dashed var(--line);
+}
+
+.rail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(38px, 1fr));
+  gap: 0.35rem;
+}
+
+.slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+/* letras com movimento carregam uma seta: a distinção estática x movimento é
+   o fato central deste projeto, então ela aparece na interface */
+.slot[data-kind="move"]::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 4px;
+  height: 4px;
+  border-top: 1.5px solid var(--beak);
+  border-right: 1.5px solid var(--beak);
+  transform: rotate(45deg);
+}
+
+.slot[data-kind="off"] {
+  background: transparent;
+  border: 1px dashed var(--line);
+  color: #4c5566;
+}
+
+/* letra que já entrou na palavra: um traço laranja na base. Antes isso era
+   uma diferença de brilho, que deixou de funcionar quando as letras
+   passaram a ser brancas. */
+.slot[data-used="true"]::before {
+  content: "";
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--beak);
+}
+
+.slot[data-active="true"] {
+  background: var(--beak);
+  border-color: var(--beak);
+  color: var(--ink);
+  transform: translateY(-2px);
+}
+
+/* ---------- rodapé ---------- */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--beak);
+}
+
+.samples {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ghost {
+  padding: 0.35rem 0.75rem;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--bone);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.ghost:hover:not(:disabled) {
+  border-color: var(--beak);
+  color: var(--beak);
+}
+
+.ghost:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+:focus-visible {
+  outline: 2px solid var(--beak);
+  outline-offset: 2px;
+}
+
+/* ---------- responsivo ---------- */
+
+@media (max-width: 860px) {
+  main {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .letter-card {
+    aspect-ratio: 5 / 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
