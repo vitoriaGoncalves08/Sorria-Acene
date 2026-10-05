@@ -21,6 +21,28 @@ import { createSmileDetector } from "./smileDetector.js";
 import { playConfirmBeep } from "./sound.js";
 import { addSample, getCount, downloadCsv } from "./sampleStore.js";
 
+// O MediaPipe imprime avisos internos de diagnóstico via console.warn ("W1005
+// 22:02:31 gl_context.cc:...", "INFO: Created TensorFlow Lite..."). Não são
+// erros, mas o Chrome os lista na página de erros da extensão, o que esconde
+// os erros de verdade. Filtramos só esse formato; qualquer outro aviso passa.
+const MEDIAPIPE_LOG = /^(?:[IW]\d{4} \d{2}:\d{2}:\d{2}\.\d+ +\d+ [\w.]+:\d+\]|INFO: )/;
+for (const level of ["warn", "info", "log"]) {
+  const original = console[level].bind(console);
+  console[level] = (...args) => {
+    if (typeof args[0] === "string" && MEDIAPIPE_LOG.test(args[0])) return;
+    original(...args);
+  };
+}
+
+// A página de erros da extensão mostra DOMException como "[object
+// DOMException]", sem dizer o que houve. Sempre registramos nome + mensagem.
+function describeError(err) {
+  return err && err.name ? `${err.name}: ${err.message}` : String(err);
+}
+window.addEventListener("unhandledrejection", (event) => {
+  console.error(`Erro não tratado — ${describeError(event.reason)}`, event.reason);
+});
+
 const el = {
   status: document.getElementById("status"),
   stageState: document.getElementById("stage-state"),
@@ -123,7 +145,10 @@ async function setupCamera() {
   await new Promise((resolve) => {
     el.video.onloadedmetadata = () => resolve();
   });
-  el.video.play();
+  // aguardado: se falhar (ex.: aba recarregada enquanto a câmera inicia), o
+  // erro cai no try/catch de start() com mensagem legível, em vez de virar um
+  // "[object DOMException]" solto no console
+  await el.video.play();
   el.canvas.width = el.video.videoWidth;
   el.canvas.height = el.video.videoHeight;
 }
@@ -223,8 +248,13 @@ function wireControls() {
     renderWord();
   });
   el.copyWord.addEventListener("click", async () => {
-    await navigator.clipboard.writeText(word);
-    el.copyWord.textContent = "Copiado";
+    // a área de transferência recusa a cópia se a página não estiver em foco
+    try {
+      await navigator.clipboard.writeText(word);
+      el.copyWord.textContent = "Copiado";
+    } catch {
+      el.copyWord.textContent = "Não copiou";
+    }
     setTimeout(() => (el.copyWord.textContent = "Copiar"), 1200);
   });
   el.downloadBtn.addEventListener("click", downloadCsv);
@@ -386,7 +416,7 @@ async function start() {
     }
     renderLoop();
   } catch (err) {
-    console.error(err);
+    console.error(describeError(err), err);
     setStatus(`Erro: ${err.message}`);
     setStageState("idle", "Erro");
   }
