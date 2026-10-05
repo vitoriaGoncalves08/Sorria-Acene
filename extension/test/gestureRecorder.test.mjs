@@ -40,6 +40,36 @@ function move(n, speed, pos) {
   return { steps, pos };
 }
 
+// Pulso parado no lugar, só a ponta do indicador (landmark 8) se mexendo — o
+// caso do H, em que quem se move são os dedos e não o pulso.
+function fingersOnly(n, speed, pos) {
+  const steps = [];
+  let tip = 0;
+  for (let i = 0; i < n; i++) {
+    tip += perFrame(speed);
+    const pts = hand(pos);
+    pts[8] = { x: pos + tip, y: 0.5, z: 0 };
+    steps.push(pts);
+  }
+  const last = steps[steps.length - 1];
+  // termina com o dedo parado na posição final
+  for (let i = 0; i < 25; i++) steps.push(last.map((p) => ({ ...p })));
+  return { steps, pos };
+}
+
+// Segurando uma letra parada, mas sem conseguir ficar 100% imóvel: a ponta do
+// dedo vai e volta rápido (velocidade de gesto), sem se afastar de verdade.
+function tremor(n, amplitude, pos) {
+  const steps = [];
+  for (let i = 0; i < n; i++) {
+    const pts = hand(pos);
+    const offset = (Math.floor(i / 2) % 2 === 0 ? 1 : -1) * amplitude * HAND_SIZE;
+    pts[8] = { x: pos + offset, y: 0.5, z: 0 };
+    steps.push(pts);
+  }
+  return { steps, pos };
+}
+
 function gone(n, pos) {
   return { steps: Array.from({ length: n }, () => null), pos };
 }
@@ -77,6 +107,8 @@ const cases = [
   ["tremida curta de 3 quadros", sequence([still, 15], [move, 3, 6.0], [still, 25]), 0],
   ["movimento lento, abaixo do limiar", sequence([still, 15], [move, 30, 0.5], [still, 25]), 0],
   ["mão some do quadro no meio do gesto", sequence([still, 10], [move, 20, 6.0], [gone, 10]), 0],
+  ["dedos se mexem com o pulso parado (H)", sequence([still, 15], [fingersOnly, 20, 6.0]), 1],
+  ["letra parada com a mão tremendo (não é gesto)", sequence([still, 10], [tremor, 40, 0.15], [still, 20]), 0],
   [
     "dois gestos seguidos",
     sequence([still, 10], [move, 25, 6.0], [still, 20], [move, 25, 6.0], [still, 20]),

@@ -154,6 +154,30 @@ frequência, seguir o mesmo padrão do `--with-external` e adaptar `train.py`
 — não fiz isso automaticamente de propósito, pra não presumir que você
 sempre vai querer misturar).
 
+## Orientação da mão: tudo é espelhado
+
+Todos os dados usam a **mão espelhada**, como num espelho (é o que você vê na
+tela ao gravar):
+
+- `collect_data.py` e `collect_movement_data.py` espelham o quadro da webcam
+  antes de detectar a mão;
+- `process_external_dataset.py` espelha as imagens do dataset externo;
+- a extensão espelha os pontos detectados (`mirrorX` em `app.js`) antes de
+  passá-los aos modelos — e por isso as amostras confirmadas que ela exporta
+  já saem na convenção certa.
+
+**Se uma fonte de dados sair da convenção, o modelo passa a ver a "outra mão"
+e erra sem dar erro nenhum.** Isso aconteceu de verdade: a extensão não
+espelhava e o dataset externo também não, então o modelo foi treinado com as
+duas orientações misturadas e a extensão mandava a orientação oposta à das
+suas gravações. Ao padronizar, um modelo treinado só com as suas amostras foi
+de 13% para 69% de acerto nas mãos do dataset externo — e o H, que era
+reconhecido nas gravações, passou a ter chance de ser reconhecido ao vivo.
+
+Para checar se um CSV novo está na convenção certa, compare cada amostra com a
+sua base normal e espelhada (x invertido): ela deve ser mais parecida com a
+base **sem** inverter.
+
 ## Por que landmarks e não pixels da imagem
 
 O classificador não olha para a imagem crua — ele recebe os 21 pontos 3D da

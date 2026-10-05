@@ -31,8 +31,10 @@ alfabeto de Libras tem dois tipos de letra:
   num instante.
 
 **Como os dois convivem** (`extension/src/app/gestureRecorder.js`): a cada
-quadro, mede-se a velocidade do pulso em "tamanhos de mão por segundo" (assim
-o limiar vale igual com a mão perto ou longe da câmera).
+quadro, mede-se o maior deslocamento entre o pulso e as pontas dos dedos, em
+"tamanhos de mão por segundo" (assim o limiar vale igual com a mão perto ou
+longe da câmera). Medir só o pulso não funcionava: no H quem se mexe são os
+dedos, e o pulso fica praticamente parado.
 
 ```
 mão parada   -> classificador estático (a pose é a letra)

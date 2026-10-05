@@ -45,7 +45,9 @@ const ctx = el.canvas.getContext("2d");
 // Abaixo disso, o classificador está "chutando" — melhor não mostrar letra
 // nenhuma do que mostrar uma errada com confiança baixa.
 const CONFIDENCE_THRESHOLD = 0.8;
-const MOVEMENT_CONFIDENCE_THRESHOLD = 0.7;
+// Mais alto que o das letras paradas: aqui um falso positivo é pior, porque
+// o resultado do gesto substitui a letra parada na tela.
+const MOVEMENT_CONFIDENCE_THRESHOLD = 0.9;
 
 // Depois de reconhecer uma letra com movimento, ela fica na tela por esse
 // tempo — senão o classificador estático assumiria de volta no quadro
@@ -68,6 +70,11 @@ const HAND_CONNECTIONS = [
 
 function setStatus(text) {
   el.status.textContent = text;
+}
+
+// Coordenadas do MediaPipe vão de 0 a 1; espelhar na horizontal é x -> 1 - x.
+function mirrorX(landmarks) {
+  return landmarks.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z }));
 }
 
 function setStageState(state, text) {
@@ -304,10 +311,20 @@ async function start() {
 
         const handResult = handLandmarker.detectForVideo(el.video, nowMs);
         drawLandmarks(handResult.landmarks);
-        const hand = handResult.landmarks.length > 0 ? handResult.landmarks[0] : null;
+        // Os modelos recebem a mão ESPELHADA, porque é assim que os scripts de
+        // gravação (training/collect_*.py) a enxergam: eles espelham a imagem
+        // da webcam antes de detectar a mão, como num espelho. Aqui o espelho é
+        // só visual (CSS), então a detecção chega com o x invertido em relação
+        // ao treino. Sem esta linha, os modelos viam a "outra mão" — o H
+        // reconhecido nas gravações não era reconhecido ao vivo. O desenho na
+        // tela continua usando os pontos originais (o canvas já é espelhado).
+        const hand = handResult.landmarks.length > 0 ? mirrorX(handResult.landmarks[0]) : null;
 
-        // Mão parada é pose; mão em movimento é gesto. Sem essa arbitragem, o
-        // classificador estático gritaria letras erradas no meio de um gesto.
+        // O gravador observa o movimento em segundo plano. A letra parada
+        // continua na tela mesmo enquanto ele acha que há movimento: ninguém
+        // segura uma letra 100% imóvel, e apagar a letra a cada mexidinha
+        // deixava as letras paradas inutilizáveis. O resultado do gesto só
+        // assume a tela quando o classificador de movimento tem certeza.
         const motionState = gestureRecorder.update(hand, nowMs);
 
         let letter = NO_LETTER;
@@ -320,9 +337,7 @@ async function start() {
           source = "movement";
         } else {
           movementHold = null;
-          if (motionState === "moving") {
-            letter = NO_LETTER;
-          } else if (hand && staticIsReady()) {
+          if (hand && staticIsReady()) {
             const prediction = predict(hand);
             if (prediction) {
               confidence = prediction.confidence;
@@ -357,7 +372,7 @@ async function start() {
         if (!hand) {
           setStageState("idle", "Mostre a mão para a câmera");
         } else if (motionState === "moving") {
-          setStageState("gesture", "Gravando gesto…");
+          setStageState("gesture", "Mão em movimento");
         } else {
           setStageState("tracking", "Mão detectada");
         }

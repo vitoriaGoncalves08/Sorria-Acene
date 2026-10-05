@@ -30,7 +30,7 @@ Projeto pessoal, em desenvolvimento. O que funciona hoje:
 | Confirmação por sorriso | ✅ |
 | Fala em voz alta (pt-BR) | ✅ |
 | Soletrar palavras | ✅ |
-| Ícones da extensão | ❌ pendente |
+| Identidade visual e ícones | ✅ |
 | Publicação na Chrome Web Store | ❌ não publicado |
 
 A acurácia relatada pelo treino (~99%) é medida com amostras da **mesma
@@ -78,9 +78,16 @@ o modelo de 95% para 99%.
 
 A solução foi separar em dois classificadores e arbitrar a cada quadro:
 
-- **Arbitragem** (`gestureRecorder.js`): mede a velocidade do pulso em
-  *tamanhos de mão por segundo* — assim o limiar vale igual com a mão perto
-  ou longe da câmera. Parada → pose. Em movimento → grava até parar.
+- **Arbitragem** (`gestureRecorder.js`): mede o maior deslocamento entre o
+  pulso e as pontas dos dedos, em *tamanhos de mão por segundo* — assim o
+  limiar vale igual com a mão perto ou longe da câmera. Parada → pose. Em
+  movimento → grava até parar.
+
+  A primeira versão media só o pulso, e o H nunca era detectado: nele quem se
+  mexe são os dedos e a rotação da mão, e o pulso fica praticamente parado. Nas
+  gravações, o pico do pulso durante o H ficava *abaixo* do ruído de uma mão
+  parada. Medindo também os dedos, a detecção do H foi de 0 para 28 em 30
+  gestos.
 - **Pre-roll**: os ~200ms anteriores ao disparo entram na gravação, pra não
   perder o comecinho do gesto. Eles **não** contam para a duração mínima,
   senão qualquer tremida viraria um gesto válido.
@@ -148,29 +155,53 @@ sai da máquina se você mesmo mandar.
 
 ## Instalação
 
-Requisitos: Node.js (só para preparar os arquivos) e Google Chrome.
+> [!IMPORTANT]
+> A extensão **não vem com o reconhecimento pronto.** O modelo é treinado com
+> amostras da sua própria mão e não está no repositório. Depois de instalar,
+> ela detecta e desenha a mão na tela, mas não reconhece nenhuma letra até
+> você passar pela etapa de [Treino](#treino) — que leva alguns minutos de
+> webcam. Isso é intencional: não faria sentido distribuir um modelo que só
+> viu a minha mão.
+
+Requisitos: **Google Chrome**, **Node.js** (só para preparar os arquivos) e
+**Python 3.10–3.12** (só para treinar).
+
+**1. Clone e prepare as dependências**
 
 ```bash
-cd extension
+git clone https://github.com/<seu-usuario>/sorria-e-acene.git
+cd sorria-e-acene/extension
 npm install
 npm run vendor    # copia o MediaPipe para lib/ — o CSP do Manifest V3 não permite CDN
 ```
 
-Baixe os modelos do MediaPipe (grandes demais para o git):
+**2. Baixe os modelos do MediaPipe** (grandes demais para o git)
+
+Ainda dentro de `extension/`:
 
 ```bash
-curl -L -o extension/lib/models/hand_landmarker.task \
+curl -L -o lib/models/hand_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
 
-curl -L -o extension/lib/models/face_landmarker.task \
+curl -L -o lib/models/face_landmarker.task \
   https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task
 ```
 
 O de rosto é opcional: sem ele a extensão reconhece letras normalmente, só não
 confirma por sorriso.
 
-No Chrome: `chrome://extensions` → **Modo do desenvolvedor** → **Carregar sem
+**3. Carregue no Chrome**
+
+`chrome://extensions` → ative **Modo do desenvolvedor** → **Carregar sem
 compactação** → selecione a pasta `extension/`.
+
+O pinguim aparece na barra do Chrome. Clique nele para abrir a aba com a
+câmera — o navegador vai pedir permissão de webcam.
+
+Nesse ponto você deve ver sua mão com o esqueleto desenhado sobre ela. Se a
+letra não aparece, **é esperado**: falta o passo de Treino abaixo.
+
+**4. Treine o reconhecimento** → veja [Treino](#treino).
 
 > Rodar detecção de mão **e** rosto a cada quadro pesa mais que só mão. Em
 > máquinas mais antigas pode ficar lento — é esperado.
@@ -222,7 +253,10 @@ Não precisam de webcam. Cobrem:
 ```
 extension/
   manifest.json           Manifest V3
-  icons/                  o lockup da marca
+  icons/
+    icon.svg              o selo (fonte vetorial do ícone)
+    icon{16,32,48,128,512}.png   ícones do Chrome — o manifesto exige PNG
+    lockup.svg            selo + wordmark, usado no cabeçalho da tela
   build/vendor.cjs        copia o MediaPipe de node_modules para lib/
   lib/                    MediaPipe + modelos (fora do git — ver Instalação)
   src/
@@ -280,7 +314,18 @@ família, com cantos arredondados. Paleta:
 | Bico | `#f09242` | acento da marca |
 | Rastro | `#4fd1e0` | esqueleto da mão, confiança — "a máquina te vendo" |
 
-O arquivo vetorial está em [`extension/icons/lockup.svg`](extension/icons/lockup.svg).
+Os arquivos ficam em [`extension/icons/`](extension/icons/):
+
+| Arquivo | Onde aparece |
+|---|---|
+| `lockup.svg` | selo + wordmark — cabeçalho da tela da extensão |
+| `icon.svg` | só o selo, quadrado — fonte vetorial dos ícones |
+| `icon16/32/48/128.png` | barra do Chrome, `chrome://extensions`, favicon da aba |
+| `icon512.png` | reserva para a listagem na Chrome Web Store |
+
+Os PNGs foram rasterizados a partir do `icon.svg` — o manifesto do Chrome não
+aceita SVG como ícone. Se a arte mudar, regere os PNGs a partir do vetor em
+vez de editá-los.
 
 ## Créditos
 

@@ -9,23 +9,57 @@
 // A velocidade é medida em "tamanhos de mão por segundo" — assim o limiar
 // funciona igual com a mão perto ou longe da câmera.
 //
-// Estes números são um chute inicial e provavelmente precisam de ajuste ao
-// vivo: se gestos não estiverem sendo detectados, baixe START_SPEED; se
-// qualquer mexidinha virar gesto, suba.
-const START_SPEED = 1.5; // acima disso: começou um gesto
-const STOP_SPEED = 0.7; // abaixo disso: a mão está parando
+// Ela é o MAIOR deslocamento entre o pulso e as pontas dos dedos, não só o do
+// pulso. Medindo só o pulso, o H era invisível: nele quem se mexe são os dedos
+// e a rotação da mão, e o pulso quase não sai do lugar (nas gravações, o pico
+// do pulso no H ficava abaixo do ruído de uma mão parada). Pelos dedos, o H
+// fica bem acima do ruído. Só x e y: o z do MediaPipe é ruidoso demais.
+//
+// Limiares calibrados com as gravações de H: no trecho parado de cada
+// gravação o sinal não passou de ~1,0; no gesto, 90% dos H passaram de ~2,3.
+// O START fica entre os dois. Se gestos não forem detectados, baixe
+// START_SPEED; se qualquer mexidinha virar gesto, suba.
+const START_SPEED = 1.6; // acima disso: começou um gesto
+const STOP_SPEED = 1.0; // abaixo disso: a mão está parando
 const STILL_HOLD_MS = 250; // tempo parada para considerar o gesto encerrado
 const MIN_GESTURE_MS = 300; // mais curto que isso é tremida, não gesto
 const MAX_GESTURE_MS = 2500; // mais longo que isso: desiste e recomeça
 const PRE_ROLL_MS = 200; // frames guardados ANTES do movimento disparar, para
 // não perder o comecinho do gesto
 const SMOOTHING = 0.7; // suavização da velocidade (0 = crua, perto de 1 = lenta)
+// Quanto algum ponto da mão precisa se AFASTAR de onde começou para contar
+// como gesto, em tamanhos de mão. Velocidade sozinha não basta: ninguém
+// consegue segurar uma letra 100% imóvel, e um ajuste rápido dos dedos tem
+// velocidade de gesto, mas não vai longe. Nas gravações, o menor afastamento
+// num H foi ~0,62; a variação típica segurando uma letra parada, ~0,15.
+const MIN_EXCURSION = 0.45;
 
 const WRIST = 0;
 const MIDDLE_MCP = 9;
+// pulso, pontas dos 5 dedos e duas juntas da palma
+const MOTION_POINTS = [0, 4, 8, 12, 16, 20, 5, 9];
 
 function dist(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+function maxDisplacement(a, b) {
+  let max = 0;
+  for (const p of MOTION_POINTS) max = Math.max(max, dist(a[p], b[p]));
+  return max;
+}
+
+// Maior afastamento em relação ao primeiro quadro, em tamanhos de mão. Usa o
+// 3º maior valor em vez do máximo: um ponto que "salta" num quadro isolado
+// (falha comum do MediaPipe nas pontas dos dedos) não pode sozinho fazer uma
+// tremida passar por gesto.
+function excursion(frames) {
+  const first = frames[0];
+  let size = 0;
+  for (const f of frames) size += dist(f[MIDDLE_MCP], f[WRIST]);
+  size = Math.max(size / frames.length, 1e-6);
+  const perFrame = frames.map((f) => maxDisplacement(f, first) / size).sort((x, y) => y - x);
+  return perFrame[Math.min(2, perFrame.length - 1)];
 }
 
 export function createGestureRecorder({ onGesture } = {}) {
@@ -61,7 +95,12 @@ export function createGestureRecorder({ onGesture } = {}) {
     const duration = stoppedAt - startedAt;
     reset();
 
-    if (duration >= MIN_GESTURE_MS && active.length >= 2 && onGesture) {
+    if (
+      duration >= MIN_GESTURE_MS &&
+      active.length >= 2 &&
+      excursion(active.map((g) => g.landmarks)) >= MIN_EXCURSION &&
+      onGesture
+    ) {
       onGesture(
         active.map((g) => g.landmarks),
         active.map((g) => g.t)
@@ -85,7 +124,7 @@ export function createGestureRecorder({ onGesture } = {}) {
 
     if (prev) {
       const dt = Math.max((now - prev.t) / 1000, 1e-3);
-      const instant = dist(landmarks[WRIST], prev.landmarks[WRIST]) / handSize / dt;
+      const instant = maxDisplacement(landmarks, prev.landmarks) / handSize / dt;
       speed = SMOOTHING * speed + (1 - SMOOTHING) * instant;
     }
     prev = { landmarks, t: now };

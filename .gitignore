@@ -18,6 +18,8 @@ training/data/external/
 
 # arquivos grandes baixados/gerados (ver README para reobtê-los)
 extension/lib/mediapipe/
+# a pasta models/ precisa existir num clone limpo, senão o download falha
+!extension/lib/models/.gitkeep
 extension/lib/models/hand_landmarker.task
 extension/lib/models/face_landmarker.task
 extension/lib/models/letter_classifier.json

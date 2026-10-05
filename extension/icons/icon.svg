@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 2 150 150" width="128" height="128">
+<title>Sorria e Acene</title>
+<g stroke-linejoin="round">
+<path d="M120 84 L142 44 L146 74 Z" fill="#1b1f26" stroke="#1b1f26" stroke-width="6"></path>
+<rect x="4" y="18" width="118" height="118" rx="34" fill="#1b1f26"></rect>
+<path d="M63 92 a23 23 0 0 1 23 23 v21 h-46 v-21 a23 23 0 0 1 23 -23 z" fill="#fbfaf8"></path>
+<circle cx="47" cy="50" r="6.5" fill="#fbfaf8"></circle><circle cx="79" cy="50" r="6.5" fill="#fbfaf8"></circle>
+<path d="M47 62 L79 62 L63 88 Z" fill="#f09242" stroke="#f09242" stroke-width="6"></path></g></svg>

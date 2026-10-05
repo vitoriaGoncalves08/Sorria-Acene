@@ -17,12 +17,31 @@ def export(model, labels, output_path):
     layers = []
     for i, (weights, biases) in enumerate(zip(model.coefs_, model.intercepts_)):
         is_last = i == len(model.coefs_) - 1
+        weights, biases = weights.tolist(), biases.tolist()
+
+        # Com exatamente 2 classes, o scikit-learn usa UMA saída só (sigmoide),
+        # não duas. Sem tratar isso, o softmax do mlp.js recebe um único valor
+        # e devolve sempre 100% para a primeira classe — o modelo parece
+        # funcionar no treino e responde a mesma coisa para tudo na extensão.
+        # sigmoid(z) == softmax([0, z])[1], então viramos 2 saídas equivalentes.
+        if is_last and len(biases) == 1:
+            weights = [[0.0, w[0]] for w in weights]
+            biases = [0.0, biases[0]]
+
         layers.append(
             {
-                "weights": weights.tolist(),
-                "biases": biases.tolist(),
+                "weights": weights,
+                "biases": biases,
                 "activation": "softmax" if is_last else "relu",
             }
+        )
+
+    # trava de segurança: uma saída por classe, senão o modelo erra em silêncio
+    n_outputs = len(layers[-1]["biases"])
+    if n_outputs != len(labels):
+        raise ValueError(
+            f"O modelo tem {n_outputs} saídas, mas há {len(labels)} classes "
+            f"({list(labels)}). Exportar assim geraria um modelo que erra em silêncio."
         )
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

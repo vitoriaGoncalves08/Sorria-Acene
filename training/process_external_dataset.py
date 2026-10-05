@@ -87,6 +87,11 @@ def cropped_with_padding(image, bbox, padding_ratio=0.4):
 
 
 def detect(landmarker, image_bgr):
+    # Espelha antes de detectar, na mesma convenção de collect_data.py (que
+    # espelha o quadro da webcam). Sem isso, as amostras do dataset externo
+    # saíam como a "outra mão" em relação às suas, e o modelo era treinado com
+    # as duas orientações misturadas.
+    image_bgr = cv2.flip(image_bgr, 1)
     rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
     result = landmarker.detect(mp_image)

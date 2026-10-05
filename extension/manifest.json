@@ -3,8 +3,20 @@
   "name": "Sorria e Acene",
   "version": "0.1.0",
   "description": "Reconhece o alfabeto de Libras pela webcam, em tempo real e 100% no navegador. Nenhum quadro de vídeo sai da sua máquina.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "action": {
-    "default_title": "Abrir Sorria e Acene"
+    "default_title": "Abrir Sorria e Acene",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "background": {
     "service_worker": "src/background/background.js"
