@@ -220,7 +220,7 @@ py -3.12 -m venv .venv                                  # Python 3.10–3.12
 .venv\Scripts\python.exe collect_data.py                # letras paradas
 .venv\Scripts\python.exe train.py
 
-.venv\Scripts\python.exe collect_movement_data.py       # H, J, K, X, Z + NADA
+.venv\Scripts\python.exe collect_movement_data.py       # qualquer letra A-Z + NADA (gestos e poses)
 .venv\Scripts\python.exe train_movement.py
 ```
 
@@ -276,7 +276,7 @@ extension/
 
 training/
   collect_data.py            grava poses (rajada de 30 amostras por tecla)
-  collect_movement_data.py   grava gestos (sequência completa)
+  collect_movement_data.py   grava todas as letras: gestos (H,J,K,X,Z) e poses (resto)
   movement_features.py       as 60 características  ⟷ gêmeo em JavaScript
   train.py / train_movement.py
   export_model.py            exporta MLP do scikit-learn como JSON

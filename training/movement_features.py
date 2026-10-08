@@ -72,6 +72,18 @@ def _keyframe_indices(n_frames):
     ]
 
 
+RESAMPLE_MS = 1000.0 / 30.0  # taxa fixa do trajeto: 30 quadros por segundo
+
+
+def _resample_track(track, times_ms):
+    """Trajeto do pulso interpolado numa grade fixa de RESAMPLE_MS, para que
+    as características não dependam da taxa de quadros de quem gravou."""
+    t = np.asarray(times_ms, dtype=np.float64)
+    n = max(2, int(np.floor((t[-1] - t[0]) / RESAMPLE_MS)) + 1)
+    grid = np.minimum(t[0] + np.arange(n) * RESAMPLE_MS, t[-1])
+    return np.stack([np.interp(grid, t, track[:, c]) for c in range(3)], axis=1)
+
+
 def _count_reversals(wrist_track, hand_size):
     """Quantas vezes a mão inverteu o sentido ao longo do eixo em que mais
     andou. É o que distingue o zigue-zague do Z do movimento reto do K."""
@@ -118,12 +130,19 @@ def extract_features(frames, times_ms):
         trajectory.extend((wrist_track[i] - origin) / hand_size)
 
     # Escalares calculados sobre TODOS os frames (não só os keyframes), senão
-    # o zigue-zague do Z passaria despercebido entre um keyframe e outro.
-    steps = np.linalg.norm(np.diff(wrist_track, axis=0), axis=1)
+    # o zigue-zague do Z passaria despercebido entre um keyframe e outro — mas
+    # sobre o trajeto REAMOSTRADO numa taxa fixa. Sem isso, a contagem de
+    # inversões depende de quantos quadros por segundo a câmera/navegador
+    # entrega: os gestos gravados pelo script (~30 fps) tinham ~2 inversões, e
+    # os mesmos gestos feitos na extensão (~60 fps) chegavam a 7, porque cada
+    # tremidinha da mão virava uma inversão. O modelo era treinado com um e
+    # recebia o outro.
+    track = _resample_track(wrist_track, times_ms)
+    steps = np.linalg.norm(np.diff(track, axis=0), axis=1)
     path_length = float(steps.sum()) / hand_size
-    net_dist = float(np.linalg.norm(wrist_track[-1] - wrist_track[0])) / hand_size
+    net_dist = float(np.linalg.norm(track[-1] - track[0])) / hand_size
     straightness = min(path_length / max(net_dist, 1e-6), MAX_STRAIGHTNESS)
-    reversals = _count_reversals(wrist_track, hand_size)
+    reversals = _count_reversals(track, hand_size)
     duration = (times_ms[-1] - times_ms[0]) / 1000.0
 
     return (

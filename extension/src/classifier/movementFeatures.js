@@ -64,6 +64,32 @@ function keyframeIndices(nFrames) {
   return idx;
 }
 
+const RESAMPLE_MS = 1000 / 30; // taxa fixa do trajeto: 30 quadros por segundo
+
+// Trajeto do pulso interpolado numa grade fixa, como np.interp no Python.
+export function resampleTrack(track, timesMs) {
+  const t0 = timesMs[0];
+  const tN = timesMs[timesMs.length - 1];
+  const n = Math.max(2, Math.floor((tN - t0) / RESAMPLE_MS) + 1);
+  const out = [];
+  let j = 0;
+  for (let k = 0; k < n; k++) {
+    const g = Math.min(t0 + k * RESAMPLE_MS, tN);
+    while (j < timesMs.length - 2 && timesMs[j + 1] < g) j++;
+    const ta = timesMs[j];
+    const tb = timesMs[j + 1];
+    const a = track[j];
+    const b = track[j + 1];
+    const w = tb === ta ? 0 : (g - ta) / (tb - ta);
+    out.push({
+      x: a.x + (b.x - a.x) * w,
+      y: a.y + (b.y - a.y) * w,
+      z: a.z + (b.z - a.z) * w,
+    });
+  }
+  return out;
+}
+
 function countReversals(wristTrack, size) {
   const first = wristTrack[0];
   const last = wristTrack[wristTrack.length - 1];
@@ -103,15 +129,18 @@ export function extractFeatures(frames, timesMs) {
   }
 
   // Escalares sobre TODOS os frames, não só os keyframes — senão o
-  // zigue-zague do Z passaria despercebido entre um keyframe e outro.
+  // zigue-zague do Z passaria despercebido entre um keyframe e outro — mas
+  // sobre o trajeto REAMOSTRADO numa taxa fixa (ver o gêmeo em Python: sem
+  // isso, a contagem de inversões dependia dos quadros por segundo).
+  const track = resampleTrack(wristTrack, timesMs);
   let pathLength = 0;
-  for (let i = 1; i < wristTrack.length; i++) {
-    pathLength += dist(wristTrack[i], wristTrack[i - 1]);
+  for (let i = 1; i < track.length; i++) {
+    pathLength += dist(track[i], track[i - 1]);
   }
   pathLength /= size;
-  const netDist = dist(wristTrack[wristTrack.length - 1], wristTrack[0]) / size;
+  const netDist = dist(track[track.length - 1], track[0]) / size;
   const straightness = Math.min(pathLength / Math.max(netDist, 1e-6), MAX_STRAIGHTNESS);
-  const reversals = countReversals(wristTrack, size);
+  const reversals = countReversals(track, size);
   const duration = (timesMs[timesMs.length - 1] - timesMs[0]) / 1000;
 
   features.push(straightness, reversals, duration);

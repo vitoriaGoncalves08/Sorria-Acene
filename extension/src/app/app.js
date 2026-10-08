@@ -19,7 +19,13 @@ import {
 import { createGestureRecorder } from "./gestureRecorder.js";
 import { createSmileDetector } from "./smileDetector.js";
 import { playConfirmBeep } from "./sound.js";
-import { addSample, getCount, downloadCsv } from "./sampleStore.js";
+import {
+  addSample,
+  addGesture,
+  getCount,
+  getGestureCount,
+  downloadCsv,
+} from "./sampleStore.js";
 
 // O MediaPipe imprime avisos internos de diagnóstico via console.warn ("W1005
 // 22:02:31 gl_context.cc:...", "INFO: Created TensorFlow Lite..."). Não são
@@ -234,12 +240,14 @@ function renderWord() {
 }
 
 function updateConfirmCount() {
-  const count = getCount();
+  const poses = getCount();
+  const gestures = getGestureCount();
+  const parts = [];
+  if (poses > 0) parts.push(`${poses} pose${poses === 1 ? "" : "s"}`);
+  if (gestures > 0) parts.push(`${gestures} gesto${gestures === 1 ? "" : "s"}`);
   el.confirmCount.textContent =
-    count === 0
-      ? "Nenhuma amostra confirmada"
-      : `${count} amostra${count === 1 ? "" : "s"} confirmada${count === 1 ? "" : "s"}`;
-  el.downloadBtn.disabled = count === 0;
+    parts.length === 0 ? "Nenhuma amostra confirmada" : `${parts.join(" e ")} confirmado${poses + gestures === 1 ? "" : "s"}`;
+  el.downloadBtn.disabled = poses + gestures === 0;
 }
 
 function wireControls() {
@@ -309,10 +317,14 @@ async function start() {
       renderWord();
       confirmFlashUntil = performance.now() + CONFIRM_FLASH_MS;
 
-      // Só letras PARADAS viram amostra: o CSV tem o formato de uma pose única
-      // (63 números de um quadro só), que não representa um gesto.
+      // Poses e gestos têm formatos de CSV diferentes (ver sampleStore.js): uma
+      // pose é um quadro só; um gesto é a sequência inteira de quadros.
       if (currentSource === "static" && currentHandLandmarks) {
         addSample(currentHandLandmarks, currentLetter);
+        updateConfirmCount();
+      } else if (currentSource === "movement" && movementHold && !movementHold.saved) {
+        addGesture(movementHold.frames, movementHold.times, movementHold.letter);
+        movementHold.saved = true; // um sorriso repetido não duplica o gesto
         updateConfirmCount();
       }
     }
@@ -328,6 +340,8 @@ async function start() {
         movementHold = {
           letter: result.letter,
           confidence: result.confidence,
+          frames, // guardados para virar amostra se você confirmar com o sorriso
+          times,
           until: performance.now() + MOVEMENT_HOLD_MS,
         };
       },

@@ -1,19 +1,25 @@
-"""Grava GESTOS (sequências de frames) para treinar o classificador das
-letras com movimento de Libras: H, J, K, X, Z.
+"""Grava TODAS as letras do alfabeto num só lugar: as com movimento viram
+gestos (sequências de frames), as paradas viram poses.
 
 Uso:
     python collect_movement_data.py
 
 Controles:
-    - H, J, K, X ou Z : conta 3, 2, 1 e grava o gesto inteiro (RECORD_SECONDS).
+    - H, J, K, X ou Z : conta e grava o gesto inteiro (RECORD_SECONDS).
       Faça o movimento completo da letra durante a gravação.
+      -> data/movement_sequences.csv
+    - Qualquer outra letra (A-Z): conta e grava uma rajada de poses
+      (SAMPLES_PER_BURST amostras em BURST_SECONDS): mantenha a pose e mexa a
+      mão levemente. É o mesmo que collect_data.py faz, com a mesma
+      normalização (importada de lá) — pode usar qualquer um dos dois.
+      -> data/landmarks.csv
     - BARRA DE ESPAÇO : grava uma amostra de "NADA" — mexa a mão à toa, leve
       ela até uma posição qualquer, coce o nariz. São essas amostras que
       ensinam o modelo a NÃO confundir "levei a mão até a posição" com letra.
     - ESC : sair.
 
-Grave ~40 amostras de cada letra e ~60 de NADA, variando velocidade, ângulo e
-distância da câmera.
+Grave ~40 gestos de cada letra com movimento e ~60 de NADA, variando
+velocidade, ângulo e distância da câmera. Para as paradas, ~30-50 poses.
 
 ⚠️ ANTES DE GRAVAR: confira numa fonte confiável (dicionário do INES ou vídeo
 de sinalizante nativo) como cada uma dessas 5 letras é feita de verdade. Se
@@ -34,6 +40,10 @@ import cv2
 import mediapipe as mp
 from mediapipe.tasks.python import vision
 from mediapipe.tasks.python.core.base_options import BaseOptions
+
+# Poses (letras paradas): mesma normalização e mesmas constantes do script que
+# já grava poses, em vez de uma cópia que poderia sair de sincronia com ele.
+from collect_data import BURST_SECONDS, OUTPUT_CSV as POSES_CSV, SAMPLES_PER_BURST, normalize
 
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "data", "movement_sequences.csv")
 MODEL_PATH = os.path.join(
@@ -96,24 +106,35 @@ def main():
             "podem acessar a câmera."
         )
 
+    poses_exist = os.path.exists(POSES_CSV)
+    os.makedirs(os.path.dirname(POSES_CSV), exist_ok=True)
+
     counts = {}
-    state = "idle"  # idle -> countdown -> recording
+    state = "idle"  # idle -> countdown -> recording (gesto) | burst (pose)
+    kind = "gesture"  # o que está sendo gravado: "gesture" | "pose"
     label = None
     state_started_at = 0.0
     recorded = []  # [(t_ms, landmarks)] do gesto em andamento
+    burst_count = 0
+    last_burst_at = 0.0
+    burst_interval = BURST_SECONDS / SAMPLES_PER_BURST
 
-    with open(OUTPUT_CSV, "a", newline="") as f, vision.HandLandmarker.create_from_options(
-        options
-    ) as landmarker:
+    with open(OUTPUT_CSV, "a", newline="") as f, open(
+        POSES_CSV, "a", newline=""
+    ) as fp, vision.HandLandmarker.create_from_options(options) as landmarker:
         writer = csv.writer(f)
+        pose_writer = csv.writer(fp)
         if not file_exists:
             header = ["sequence_id", "frame", "t_ms"]
             for i in range(21):
                 header += [f"x{i}", f"y{i}", f"z{i}"]
             header.append("label")
             writer.writerow(header)
+        if not poses_exist:
+            pose_writer.writerow([f"p{i}" for i in range(63)] + ["label"])
 
-        print("H J K X Z = gravar a letra | ESPAÇO = gravar 'NADA' | ESC = sair")
+        print("Qualquer letra A-Z = gravar | ESPAÇO = gravar 'NADA' | ESC = sair")
+        print("  H J K X Z gravam o gesto; as outras gravam uma rajada de poses.")
         clock_start = time.time()
 
         while True:
@@ -135,11 +156,32 @@ def main():
             if state == "countdown":
                 remaining = COUNTDOWN_SECONDS - (now - state_started_at)
                 if remaining <= 0:
-                    state = "recording"
+                    state = "recording" if kind == "gesture" else "burst"
                     state_started_at = now
                     recorded = []
+                    burst_count = 0
+                    last_burst_at = 0.0
                 else:
                     draw_banner(frame, f"'{label}' em {remaining:.1f}s — prepare-se", (0, 255, 255))
+
+            if state == "burst":
+                # rajada de poses de uma letra parada: mesmo critério do collect_data.py
+                if hand and (now - last_burst_at) >= burst_interval:
+                    pose_writer.writerow(list(normalize(hand)) + [label])
+                    burst_count += 1
+                    last_burst_at = now
+                draw_banner(
+                    frame,
+                    f"GRAVANDO '{label}': {burst_count}/{SAMPLES_PER_BURST} — mexa a mão um pouco",
+                    (0, 0, 255),
+                )
+                # o limite de tempo evita travar se a mão sair do quadro
+                if burst_count >= SAMPLES_PER_BURST or (now - state_started_at) > BURST_SECONDS * 3:
+                    fp.flush()
+                    counts[label] = counts.get(label, 0) + burst_count
+                    print(f"'{label}' (pose): {burst_count} amostras — total nesta sessão: {counts[label]}")
+                    state = "idle"
+                    label = None
 
             if state == "recording":
                 elapsed = now - state_started_at
@@ -168,9 +210,9 @@ def main():
                     label = None
 
             if state == "idle":
-                draw_banner(frame, "H J K X Z = letra | ESPACO = NADA | ESC = sair", (255, 255, 255))
+                draw_banner(frame, "A-Z = gravar letra | ESPACO = NADA | ESC = sair", (255, 255, 255))
 
-            cv2.imshow("Coleta de gestos - Letras com movimento", frame)
+            cv2.imshow("Coleta de letras - poses e gestos", frame)
 
             key = cv2.waitKey(1) & 0xFF
             if key == 27:  # ESC
@@ -178,20 +220,14 @@ def main():
 
             if state == "idle":
                 if key == 32:  # espaço
-                    label = NONE_LABEL
+                    label, kind = NONE_LABEL, "gesture"
                     state = "countdown"
                     state_started_at = now
                 elif 65 <= key <= 90 or 97 <= key <= 122:
-                    pressed = chr(key).upper()
-                    if pressed in MOVEMENT_LETTERS:
-                        label = pressed
-                        state = "countdown"
-                        state_started_at = now
-                    else:
-                        print(
-                            f"'{pressed}' não é letra com movimento. "
-                            "Use collect_data.py para as letras paradas."
-                        )
+                    label = chr(key).upper()
+                    kind = "gesture" if label in MOVEMENT_LETTERS else "pose"
+                    state = "countdown"
+                    state_started_at = now
 
     cap.release()
     cv2.destroyAllWindows()

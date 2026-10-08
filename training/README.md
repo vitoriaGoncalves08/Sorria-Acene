@@ -53,9 +53,12 @@ aprender o movimento errado com muita precisão — o que é pior do que não te
 letra.
 
 ```powershell
-# 1. Gravar os gestos. Aperte H, J, K, X ou Z: ele conta 3, 2, 1 e grava o
-#    movimento inteiro (1,5s). Aperte ESPAÇO para gravar "NADA" — mexer a mão
-#    à toa, levar ela até uma posição. Grave ~40 de cada letra e ~60 de NADA.
+# 1. Gravar os gestos. Aperte H, J, K, X ou Z: ele conta e grava o movimento
+#    inteiro (1,5s). Aperte ESPAÇO para gravar "NADA" — mexer a mão à toa,
+#    levar ela até uma posição. Grave ~40 de cada letra e ~60 de NADA.
+#    Este script grava TODAS as letras: qualquer outra tecla de A a Z grava uma
+#    rajada de poses no landmarks.csv (o mesmo que collect_data.py faz), então
+#    dá pra gravar o alfabeto inteiro numa sessão só.
 .venv\Scripts\python.exe collect_movement_data.py
 
 # 2. Treinar e exportar
@@ -140,11 +143,25 @@ combinação que você quer (não existe um estado misturado permanente).
 
 A extensão tem um modo de confirmação por sorriso — quando você confirma uma
 letra reconhecida, ela vira uma amostra guardada em memória, e o botão
-"Baixar amostras confirmadas (CSV)" exporta um arquivo no **mesmo formato**
-de `landmarks.csv` (`p0..p62,label`). Isso é interessante porque são
-amostras de uso real (não de uma sessão de gravação dedicada), mas também
-**sem garantia de qualidade** — se você confirmou sem querer ou o sorriso
-disparou errado, a amostra entra do mesmo jeito.
+"Baixar CSV" exporta os arquivos. Como há dois tipos de letra, são dois
+formatos, cada um **igual ao do seu arquivo de treino correspondente**:
+
+| Tipo | Arquivo baixado | Formato igual a | Acrescente em |
+|---|---|---|---|
+| Pose (21 letras paradas) | `amostras_confirmadas_*.csv` | `landmarks.csv` | `data/landmarks.csv` |
+| Gesto (H, J, K, X, Z) | `gestos_confirmados_*.csv` | `movement_sequences.csv` | `data/movement_sequences.csv` |
+
+Se só um tipo foi confirmado na sessão, só esse arquivo é baixado. O
+`sequence_id` dos gestos é só um identificador de agrupamento (quadros com o
+mesmo id são um gesto) — não precisa ser único entre sessões, mas se você
+juntar dois lotes baixados no mesmo instante, confira que não repetem.
+
+Isso é interessante porque são amostras de uso real (não de uma sessão de
+gravação dedicada), mas também **sem garantia de qualidade** — se você
+confirmou sem querer ou o sorriso disparou errado, a amostra entra do mesmo
+jeito. E há um viés: só entra o que o modelo **já reconheceu** (o rótulo é o
+que a extensão mostrou e você confirmou), então esses dados reforçam o que ele
+sabe e quase não ensinam os casos em que ele erra.
 
 **Como incorporar** (mesmo espírito "separado até você decidir juntar" do
 dataset externo acima): salve o CSV baixado em `training/data/`, dê uma
