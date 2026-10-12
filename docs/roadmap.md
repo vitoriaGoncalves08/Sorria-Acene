@@ -56,6 +56,14 @@ Depois de reconhecer uma letra de movimento, ela fica na tela por
 no quadro seguinte (a mão continua parada em alguma pose no fim do gesto) e
 não daria tempo de sorrir pra confirmar.
 
+**Durante** o gesto, a letra parada some da tela — mas só num gesto de
+verdade (`isGestureInProgress()`: a mão já se afastou pelo menos 0,3 tamanhos
+de mão do ponto de partida). Uma tremida não apaga a letra, senão ninguém
+conseguiria segurar uma letra parada. Isso importa porque, no meio de um Z, o
+classificador de poses chutava uma letra em ~75% dos quadros e trocava de
+letra quase 4 vezes por gesto (L, G, N, M...); com a regra, cai para ~9% dos
+quadros e 0,4 trocas.
+
 **As duas implementações que precisam ficar em sincronia**: as 60
 características do gesto são calculadas em Python (`movement_features.py`,
 para treinar) e em JavaScript (`movementFeatures.js`, em tempo real). Se

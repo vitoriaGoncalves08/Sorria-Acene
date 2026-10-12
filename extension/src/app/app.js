@@ -364,11 +364,14 @@ async function start() {
         // tela continua usando os pontos originais (o canvas já é espelhado).
         const hand = handResult.landmarks.length > 0 ? mirrorX(handResult.landmarks[0]) : null;
 
-        // O gravador observa o movimento em segundo plano. A letra parada
-        // continua na tela mesmo enquanto ele acha que há movimento: ninguém
-        // segura uma letra 100% imóvel, e apagar a letra a cada mexidinha
-        // deixava as letras paradas inutilizáveis. O resultado do gesto só
-        // assume a tela quando o classificador de movimento tem certeza.
+        // O gravador observa o movimento em segundo plano. Uma tremida NÃO
+        // apaga a letra parada: ninguém segura uma letra 100% imóvel. Mas um
+        // gesto de verdade em andamento (a mão já foi longe do ponto de
+        // partida) sim: no meio do Z o classificador de poses chutava letras
+        // (L, G, N, M...) em ~75% dos quadros, trocando de letra quase 4 vezes
+        // por gesto — e um sorriso nessa hora confirmaria uma delas. O
+        // resultado do gesto assume a tela quando o classificador de
+        // movimento tem certeza.
         const motionState = gestureRecorder.update(hand, nowMs);
 
         let letter = NO_LETTER;
@@ -381,7 +384,7 @@ async function start() {
           source = "movement";
         } else {
           movementHold = null;
-          if (hand && staticIsReady()) {
+          if (hand && staticIsReady() && !gestureRecorder.isGestureInProgress()) {
             const prediction = predict(hand);
             if (prediction) {
               confidence = prediction.confidence;
@@ -415,6 +418,8 @@ async function start() {
 
         if (!hand) {
           setStageState("idle", "Mostre a mão para a câmera");
+        } else if (gestureRecorder.isGestureInProgress()) {
+          setStageState("gesture", "Gesto em andamento");
         } else if (motionState === "moving") {
           setStageState("gesture", "Mão em movimento");
         } else {

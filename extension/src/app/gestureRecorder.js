@@ -33,6 +33,10 @@ const SMOOTHING = 0.7; // suavização da velocidade (0 = crua, perto de 1 = len
 // velocidade de gesto, mas não vai longe. Nas gravações, o menor afastamento
 // num H foi ~0,62; a variação típica segurando uma letra parada, ~0,15.
 const MIN_EXCURSION = 0.45;
+// Para ESCONDER a letra parada durante o gesto basta bem menos: o gesto ainda
+// não terminou, e piscar letras erradas no meio dele é pior do que apagar a
+// tela um instante antes. Fica acima da tremida típica (~0,15).
+const HIDE_EXCURSION = 0.3;
 
 const WRIST = 0;
 const MIDDLE_MCP = 9;
@@ -70,12 +74,23 @@ export function createGestureRecorder({ onGesture } = {}) {
   let speed = 0;
   let stillSince = null;
   let movementStartedAt = null; // quando o movimento disparou (depois do pre-roll)
+  let topExcursions = []; // os 3 maiores afastamentos já vistos neste gesto
 
   function reset() {
     state = "still";
     gesture = [];
     stillSince = null;
     movementStartedAt = null;
+    topExcursions = [];
+  }
+
+  // Há um gesto de verdade acontecendo agora? Só estar "em movimento" não
+  // basta: uma tremida também dispara o estado, e a tela esconde a letra
+  // parada enquanto há gesto — esconder numa tremida apagaria as letras
+  // paradas. Aqui exige que a mão já tenha ido longe de onde começou, pela
+  // mesma medida (3º maior valor) usada para aceitar o gesto no final.
+  function isGestureInProgress() {
+    return state === "moving" && topExcursions.length >= 3 && topExcursions[2] >= HIDE_EXCURSION;
   }
 
   function finish(now) {
@@ -145,6 +160,9 @@ export function createGestureRecorder({ onGesture } = {}) {
 
     // state === "moving"
     gesture.push({ landmarks, t: now });
+    topExcursions.push(maxDisplacement(landmarks, gesture[0].landmarks) / handSize);
+    topExcursions.sort((a, b) => b - a);
+    if (topExcursions.length > 3) topExcursions.length = 3;
 
     if (now - gesture[0].t > MAX_GESTURE_MS) {
       reset();
@@ -160,5 +178,5 @@ export function createGestureRecorder({ onGesture } = {}) {
     return state;
   }
 
-  return { update, getState: () => state };
+  return { update, getState: () => state, isGestureInProgress };
 }

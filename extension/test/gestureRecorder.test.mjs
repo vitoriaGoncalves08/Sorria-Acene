@@ -116,7 +116,34 @@ const cases = [
   ],
 ];
 
+// A tela esconde a letra parada só durante um gesto de VERDADE. Mede, ao longo
+// da sequência, se isGestureInProgress() chegou a ficar verdadeiro.
+function everInProgress(steps) {
+  const recorder = createGestureRecorder({});
+  let t = 0;
+  let seen = false;
+  for (const landmarks of steps) {
+    recorder.update(landmarks, t);
+    if (recorder.isGestureInProgress()) seen = true;
+    t += FPS_MS;
+  }
+  return seen;
+}
+
+const progressCases = [
+  ["gesto de verdade esconde a letra parada", sequence([still, 15], [move, 30, 6.0], [still, 25]), true],
+  ["dedos se mexendo longe esconde a letra parada", sequence([still, 15], [fingersOnly, 20, 6.0]), true],
+  ["tremida NÃO esconde a letra parada", sequence([still, 10], [tremor, 40, 0.15], [still, 20]), false],
+  ["mão parada não esconde a letra", sequence([still, 60]), false],
+];
+
 let failures = 0;
+for (const [name, steps, expected] of progressCases) {
+  const got = everInProgress(steps);
+  const ok = got === expected;
+  if (!ok) failures++;
+  console.log(`${ok ? "OK   " : "FALHA"} ${name}: ${got}/${expected}`);
+}
 for (const [name, steps, expected] of cases) {
   const fired = countGestures(steps);
   const ok = fired.length === expected;
