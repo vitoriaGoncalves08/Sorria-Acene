@@ -66,7 +66,7 @@ function excursion(frames) {
   return perFrame[Math.min(2, perFrame.length - 1)];
 }
 
-export function createGestureRecorder({ onGesture } = {}) {
+export function createGestureRecorder({ onGesture, onReject } = {}) {
   let state = "still"; // "still" | "moving"
   let preRoll = []; // { landmarks, t } recentes, enquanto parada
   let gesture = []; // { landmarks, t } do gesto em andamento
@@ -110,12 +110,18 @@ export function createGestureRecorder({ onGesture } = {}) {
     const duration = stoppedAt - startedAt;
     reset();
 
-    if (
-      duration >= MIN_GESTURE_MS &&
-      active.length >= 2 &&
-      excursion(active.map((g) => g.landmarks)) >= MIN_EXCURSION &&
-      onGesture
-    ) {
+    // Cada descarte diz o motivo (onReject): sem isso, um gesto perdido some
+    // em silêncio e fica impossível saber por que a extensão "não pegou".
+    if (duration < MIN_GESTURE_MS || active.length < 2) {
+      if (onReject) onReject(`curto demais (${Math.round(duration)} ms; o mínimo é ${MIN_GESTURE_MS})`);
+      return;
+    }
+    const spread = excursion(active.map((g) => g.landmarks));
+    if (spread < MIN_EXCURSION) {
+      if (onReject) onReject(`a mão se afastou pouco (${spread.toFixed(2)}; o mínimo é ${MIN_EXCURSION})`);
+      return;
+    }
+    if (onGesture) {
       onGesture(
         active.map((g) => g.landmarks),
         active.map((g) => g.t)
@@ -128,10 +134,12 @@ export function createGestureRecorder({ onGesture } = {}) {
   function update(landmarks, now) {
     if (!landmarks) {
       // mão saiu do quadro: descarta o que estava gravando
+      const wasMoving = state === "moving";
       preRoll = [];
       prev = null;
       speed = 0;
       reset();
+      if (wasMoving && onReject) onReject("a mão saiu do quadro no meio do gesto");
       return state;
     }
 
@@ -166,6 +174,7 @@ export function createGestureRecorder({ onGesture } = {}) {
 
     if (now - gesture[0].t > MAX_GESTURE_MS) {
       reset();
+      if (onReject) onReject(`a mão não parou em ${MAX_GESTURE_MS / 1000} s — pare a mão no fim do gesto`);
       return state;
     }
 

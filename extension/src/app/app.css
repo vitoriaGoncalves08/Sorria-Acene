@@ -260,6 +260,18 @@ main {
   font-variant-numeric: tabular-nums;
 }
 
+/* o que a extensão decidiu sobre o último gesto: mostra o motivo quando um
+   gesto é descartado, que antes sumia em silêncio */
+.gesture-log {
+  min-height: 1.1rem;
+}
+.gesture-log[data-ok="true"] {
+  color: var(--track);
+}
+.gesture-log[data-ok="false"] {
+  color: var(--beak);
+}
+
 /* ---------- palavra ---------- */
 
 .word-block {
@@ -442,6 +454,10 @@ main {
 
 .toggle input {
   accent-color: var(--beak);
+}
+
+select.ghost {
+  background: var(--surface);
 }
 
 .samples {

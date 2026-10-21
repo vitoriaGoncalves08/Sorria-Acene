@@ -44,6 +44,7 @@
           <div class="meter-fill" id="meter-fill"></div>
         </div>
         <p class="meter-label"><span id="confidence">sem leitura</span></p>
+        <p class="meter-label gesture-log" id="gesture-log" title="Último gesto que a extensão detectou, e o que decidiu"></p>
 
         <div class="word-block">
           <div class="readout-head">
@@ -75,6 +76,18 @@
       <label class="toggle">
         <input type="checkbox" id="speech-toggle" checked />
         Falar a letra em voz alta
+      </label>
+      <label class="toggle" title="Cada gesto que você fizer é guardado com a letra escolhida, sem precisar sorrir. Serve para gravar gestos no mesmo ambiente em que serão reconhecidos.">
+        Gravar gestos como
+        <select id="record-as" class="ghost">
+          <option value="">— não gravar —</option>
+          <option value="H">H</option>
+          <option value="J">J</option>
+          <option value="K">K</option>
+          <option value="X">X</option>
+          <option value="Z">Z</option>
+          <option value="NADA">NADA (mexer à toa)</option>
+        </select>
       </label>
       <div class="samples">
         <span id="confirm-count">Nenhuma amostra confirmada</span>

@@ -6,7 +6,7 @@
   "description": "Extensão de navegador que reconhece o alfabeto de Libras via webcam (fase 1: só letras, sem backend).",
   "scripts": {
     "vendor": "node build/vendor.cjs",
-    "test": "node test/gestureRecorder.test.mjs && node test/frameRate.test.mjs && node test/parity.test.mjs"
+    "test": "node test/gestureRecorder.test.mjs && node test/movementHold.test.mjs && node test/frameRate.test.mjs && node test/parity.test.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14"

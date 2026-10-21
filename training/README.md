@@ -78,6 +78,33 @@ duração. Os landmarks são guardados **crus** em
 `data/movement_sequences.csv`, então dá pra melhorar a extração de
 características depois sem regravar nada.
 
+### Gravar gestos pela própria extensão (recomendado quando o reconhecimento ao vivo falha)
+
+Os scripts de gravação capturam a ~30 quadros por segundo; a extensão roda a
+~60, com o ruído da câmera e do navegador. Um gesto pode ser lido com 98% de
+certeza nas gravações e com menos de 50% ao vivo — e os testes offline não
+reproduzem essa diferença. O jeito de corrigir é gravar **no mesmo ambiente em
+que o reconhecimento acontece**:
+
+1. Na extensão, escolha a letra em **"Gravar gestos como"** (rodapé).
+2. Faça o gesto várias vezes. Cada gesto detectado é guardado na hora com a
+   letra escolhida — sem sorrir, e sem depender do que o modelo achou. A linha
+   abaixo da barra de confiança mostra `gravado como Z (N gestos...)`.
+3. Escolha **NADA** e mexa a mão à toa para gravar essa classe também.
+4. **Baixar CSV**, e depois:
+
+```powershell
+.venv\Scripts\python.exe add_samples.py "C:\Users\voce\Downloads\gestos_confirmados_XXXX.csv"
+.venv\Scripts\python.exe train_movement.py
+```
+
+Volte para **"— não gravar —"** quando terminar, senão todo gesto continua
+sendo guardado com aquela letra.
+
+A mesma linha de status explica por que um gesto foi descartado (mão não
+parou, gesto curto demais, certeza abaixo de 90%...), o que antes sumia em
+silêncio.
+
 ### O teste de paridade (importante)
 
 `movement_features.py` tem um gêmeo em JavaScript

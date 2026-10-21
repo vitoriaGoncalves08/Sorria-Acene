@@ -17,6 +17,7 @@ import {
   NONE_LABEL,
 } from "../classifier/movementClassifier.js";
 import { createGestureRecorder } from "./gestureRecorder.js";
+import { createMovementHold } from "./movementHold.js";
 import { createSmileDetector } from "./smileDetector.js";
 import { playConfirmBeep } from "./sound.js";
 import {
@@ -58,6 +59,8 @@ const el = {
   letterSource: document.getElementById("letter-source"),
   meterFill: document.getElementById("meter-fill"),
   confidence: document.getElementById("confidence"),
+  gestureLog: document.getElementById("gesture-log"),
+  recordAs: document.getElementById("record-as"),
   word: document.getElementById("word"),
   copyWord: document.getElementById("copy-word"),
   clearWord: document.getElementById("clear-word"),
@@ -77,11 +80,9 @@ const CONFIDENCE_THRESHOLD = 0.8;
 // o resultado do gesto substitui a letra parada na tela.
 const MOVEMENT_CONFIDENCE_THRESHOLD = 0.9;
 
-// Depois de reconhecer uma letra com movimento, ela fica na tela por esse
-// tempo — senão o classificador estático assumiria de volta no quadro
-// seguinte (a mão continua parada em alguma pose no fim do gesto) e você não
-// teria tempo de sorrir pra confirmar.
-const MOVEMENT_HOLD_MS = 1800;
+// Quantos quadros do fim do gesto olhar para saber que letras o classificador
+// de poses lê ali (ver movementHold.js) — ~0,25 s.
+const END_POSE_FRAMES = 15;
 const CONFIRM_FLASH_MS = 450;
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
@@ -305,7 +306,9 @@ async function start() {
     let currentLetter = NO_LETTER;
     let currentHandLandmarks = null;
     let currentSource = null; // "static" | "movement" | null
-    let movementHold = null;
+    // O gesto reconhecido fica na tela enquanto a mão continuar na pose do fim
+    // dele — ver movementHold.js para o porquê.
+    const movementHold = createMovementHold();
     let confirmFlashUntil = 0;
 
     function handleConfirm() {
@@ -322,28 +325,92 @@ async function start() {
       if (currentSource === "static" && currentHandLandmarks) {
         addSample(currentHandLandmarks, currentLetter);
         updateConfirmCount();
-      } else if (currentSource === "movement" && movementHold && !movementHold.saved) {
-        addGesture(movementHold.frames, movementHold.times, movementHold.letter);
-        movementHold.saved = true; // um sorriso repetido não duplica o gesto
+      } else if (currentSource === "movement" && movementHold.current && !movementHold.current.saved) {
+        const g = movementHold.current;
+        addGesture(g.frames, g.times, g.letter);
+        g.saved = true; // um sorriso repetido não duplica o gesto
         updateConfirmCount();
       }
     }
 
     const smileDetector = createSmileDetector({ onSmile: handleConfirm });
 
+    // Última decisão sobre um gesto, mostrada na tela: um gesto descartado
+    // antes sumia em silêncio, e era impossível saber por quê.
+    function logGesture(text, ok) {
+      // gravando ao vivo, a linha "gravado como X" tem prioridade sobre o que
+      // o modelo achou do mesmo gesto, que viria logo em seguida
+      if (recordedNow && !text.startsWith("gravado")) return;
+      el.gestureLog.textContent = text;
+      el.gestureLog.dataset.ok = String(ok);
+    }
+
+    // Modo de gravação ao vivo: todo gesto detectado é guardado com a letra
+    // escolhida, na hora, sem sorrir e sem depender do que o modelo achou. É o
+    // jeito de gravar no MESMO ambiente em que o reconhecimento acontece
+    // (câmera e navegador a ~60 quadros/s) — os scripts de gravação do
+    // training/ capturam a ~30 e não reproduzem isso.
+    let recordedNow = false;
+
     const gestureRecorder = createGestureRecorder({
+      onReject: (reason) => logGesture(`gesto descartado: ${reason}`, false),
       onGesture: (frames, times) => {
-        if (!movementIsReady()) return;
+        recordedNow = false;
+        const recordLabel = el.recordAs.value;
+        if (recordLabel) {
+          addGesture(frames, times, recordLabel);
+          updateConfirmCount();
+          recordedNow = true;
+          logGesture(
+            `gravado como ${recordLabel} (${getGestureCount()} gestos nesta sessão, ${frames.length} quadros)`,
+            true
+          );
+        }
+        if (!movementIsReady()) {
+          logGesture("gesto detectado, mas o modelo de movimento não foi treinado", false);
+          return;
+        }
         const result = predictGesture(frames, times);
-        if (!result || result.letter === NONE_LABEL) return;
-        if (result.confidence < MOVEMENT_CONFIDENCE_THRESHOLD) return;
-        movementHold = {
-          letter: result.letter,
-          confidence: result.confidence,
-          frames, // guardados para virar amostra se você confirmar com o sorriso
-          times,
-          until: performance.now() + MOVEMENT_HOLD_MS,
-        };
+        const pct = result ? `${Math.round(result.confidence * 100)}%` : "";
+        // NADA e pouca certeza não mexem no gesto que está na tela. Soltá-lo
+        // num NADA seria errado: um gesto às vezes é cortado em dois pedaços,
+        // e o segundo pode ser lido como NADA. Quando a mão realmente segue
+        // em frente, quem solta é o "gesto em andamento" (movementHold.js).
+        if (!result) return;
+        if (result.letter === NONE_LABEL) {
+          logGesture(`gesto lido como NADA (${pct}) — movimento à toa`, false);
+          return;
+        }
+        if (result.confidence < MOVEMENT_CONFIDENCE_THRESHOLD) {
+          logGesture(
+            `gesto lido como ${result.letter} com só ${pct} de certeza (precisa de ${Math.round(MOVEMENT_CONFIDENCE_THRESHOLD * 100)}%) — ignorado`,
+            false
+          );
+          return;
+        }
+        logGesture(`gesto ${result.letter} reconhecido (${pct}, ${frames.length} quadros)`, true);
+
+        // letras que o classificador de poses lê no FIM do gesto: é o que ele
+        // vai mostrar assim que o gesto sair da tela, e não deve substituí-lo
+        const endLetters = new Set();
+        if (staticIsReady()) {
+          for (const frame of frames.slice(-END_POSE_FRAMES)) {
+            const p = predict(frame);
+            if (p && p.confidence >= 0.5) endLetters.add(p.letter);
+          }
+        }
+        movementHold.start(
+          {
+            letter: result.letter,
+            confidence: result.confidence,
+            frames, // guardados para virar amostra se você confirmar com o sorriso
+            times,
+            endLetters,
+          },
+          performance.now()
+        );
+        // já foi guardado pelo modo de gravação: um sorriso depois não duplica
+        if (recordedNow && movementHold.current) movementHold.current.saved = true;
       },
     });
 
@@ -378,21 +445,28 @@ async function start() {
         let source = null;
         let confidence = 0;
 
-        if (movementHold && nowMs < movementHold.until) {
-          letter = movementHold.letter;
-          confidence = movementHold.confidence;
+        const inProgress = gestureRecorder.isGestureInProgress();
+        const prediction = hand && staticIsReady() ? predict(hand) : null;
+        const held = movementHold.update(
+          {
+            now: nowMs,
+            hasHand: Boolean(hand),
+            gestureInProgress: inProgress,
+            staticLetter: prediction ? prediction.letter : null,
+            staticConfidence: prediction ? prediction.confidence : 0,
+          },
+          CONFIDENCE_THRESHOLD
+        );
+
+        if (held) {
+          letter = held.letter;
+          confidence = held.confidence;
           source = "movement";
-        } else {
-          movementHold = null;
-          if (hand && staticIsReady() && !gestureRecorder.isGestureInProgress()) {
-            const prediction = predict(hand);
-            if (prediction) {
-              confidence = prediction.confidence;
-              if (prediction.confidence >= CONFIDENCE_THRESHOLD) {
-                letter = prediction.letter;
-                source = "static";
-              }
-            }
+        } else if (prediction && !inProgress) {
+          confidence = prediction.confidence;
+          if (prediction.confidence >= CONFIDENCE_THRESHOLD) {
+            letter = prediction.letter;
+            source = "static";
           }
         }
 

@@ -51,10 +51,17 @@ gravações de mão se mexendo à toa. É ela que evita que simplesmente levar a
 mão até a posição vire uma letra: em vez de adivinhar por regra o que é gesto
 e o que é transição, o próprio modelo decide.
 
-Depois de reconhecer uma letra de movimento, ela fica na tela por
-`MOVEMENT_HOLD_MS` (~1,8s) — senão o classificador estático assumiria de volta
-no quadro seguinte (a mão continua parada em alguma pose no fim do gesto) e
-não daria tempo de sorrir pra confirmar.
+Depois de reconhecer uma letra de movimento, ela fica na tela por pelo menos
+1,8s (tempo de sorrir pra confirmar) e **enquanto a mão continuar lendo as
+letras que ela já lia no fim do gesto** (`extension/src/app/movementHold.js`).
+Um tempo fixo não funciona: a mão termina o gesto numa pose qualquer e o
+classificador de poses a lê como outra letra — no Z, como N e M. Com tempo
+fixo, o Z era reconhecido em 25 de 26 gravações e mesmo assim a tela trocava
+por N depois de 2s. A regra solta o gesto quando uma letra confiante
+**diferente** das do fim do gesto aparece (você mudou de pose), quando a mão
+sai do quadro, ou depois de 8s (rede de segurança). Olha-se a letra lida, e
+não a distância entre poses, porque uma pose segurada deriva tanto quanto a
+diferença entre letras parecidas (N e M).
 
 **Durante** o gesto, a letra parada some da tela — mas só num gesto de
 verdade (`isGestureInProgress()`: a mão já se afastou pelo menos 0,3 tamanhos
