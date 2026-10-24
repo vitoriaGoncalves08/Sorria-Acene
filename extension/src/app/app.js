@@ -20,6 +20,8 @@ import { createGestureRecorder } from "./gestureRecorder.js";
 import { createMovementHold } from "./movementHold.js";
 import { createSmileDetector } from "./smileDetector.js";
 import { playConfirmBeep } from "./sound.js";
+import { HAND_CONNECTIONS } from "./hand.js";
+import { createTutorial, loadTutorialRefs } from "./tutorial.js";
 import {
   addSample,
   addGesture,
@@ -73,6 +75,17 @@ const el = {
 };
 const ctx = el.canvas.getContext("2d");
 
+const tutorial = createTutorial({
+  dialog: document.getElementById("tutorial"),
+  title: document.getElementById("tutorial-title"),
+  canvas: document.getElementById("tutorial-canvas"),
+  say: document.getElementById("tutorial-say"),
+  note: document.getElementById("tutorial-note"),
+  slow: document.getElementById("tutorial-slow"),
+  slowWrap: document.getElementById("tutorial-slow-wrap"),
+  close: document.getElementById("tutorial-close"),
+});
+
 // Abaixo disso, o classificador está "chutando" — melhor não mostrar letra
 // nenhuma do que mostrar uma errada com confiança baixa.
 const CONFIDENCE_THRESHOLD = 0.8;
@@ -87,15 +100,6 @@ const CONFIRM_FLASH_MS = 450;
 
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const NO_LETTER = "—";
-
-const HAND_CONNECTIONS = [
-  [0, 1], [1, 2], [2, 3], [3, 4], // polegar
-  [0, 5], [5, 6], [6, 7], [7, 8], // indicador
-  [5, 9], [9, 10], [10, 11], [11, 12], // médio
-  [9, 13], [13, 14], [14, 15], [15, 16], // anelar
-  [13, 17], [17, 18], [18, 19], [19, 20], // mínimo
-  [0, 17],
-];
 
 function setStatus(text) {
   el.status.textContent = text;
@@ -207,16 +211,19 @@ function buildRail() {
 
   for (const letter of ALPHABET) {
     const kind = poses.has(letter) ? "pose" : moves.has(letter) ? "move" : "off";
-    const slot = document.createElement("div");
+    // botão: clicar abre o tutorial do pinguim com aquela letra
+    const slot = document.createElement("button");
+    slot.type = "button";
     slot.className = "slot";
     slot.dataset.kind = kind;
     slot.textContent = letter;
     slot.title =
-      kind === "pose"
+      (kind === "pose"
         ? `${letter} — pose parada`
         : kind === "move"
           ? `${letter} — precisa de movimento`
-          : `${letter} — ainda sem treino`;
+          : `${letter} — ainda sem treino`) + ". Clique para ver como fazer.";
+    slot.addEventListener("click", () => tutorial.open(letter));
     el.rail.append(slot);
     slots.set(letter, slot);
   }
@@ -274,6 +281,8 @@ async function start() {
   wireControls();
   renderWord();
   updateConfirmCount();
+  // não depende da câmera: o tutorial funciona mesmo se a webcam falhar
+  loadTutorialRefs();
 
   try {
     setStatus("Pedindo acesso à webcam…");

@@ -95,6 +95,43 @@
       </div>
     </footer>
 
+    <!-- tutorial do pinguim: abre ao clicar numa letra do alfabeto -->
+    <dialog class="tutorial" id="tutorial" aria-labelledby="tutorial-title">
+      <div class="tutorial-card">
+        <div class="tutorial-head">
+          <h2 id="tutorial-title">Como fazer</h2>
+          <button type="button" class="ghost tutorial-close" id="tutorial-close" aria-label="Fechar">✕</button>
+        </div>
+
+        <canvas class="tutorial-stage" id="tutorial-canvas" role="img" aria-label="Mão em esqueleto mostrando a letra"></canvas>
+
+        <div class="tutorial-guide">
+          <!-- o mesmo pinguim de icons/icon.svg, inline só para a nadadeira
+               poder acenar -->
+          <svg class="penguin" viewBox="0 2 150 150" aria-hidden="true">
+            <g stroke-linejoin="round">
+              <path class="flipper" d="M120 84 L142 44 L146 74 Z" fill="#1b1f26" stroke="#1b1f26" stroke-width="6"></path>
+              <rect x="4" y="18" width="118" height="118" rx="34" fill="#1b1f26"></rect>
+              <path d="M63 92 a23 23 0 0 1 23 23 v21 h-46 v-21 a23 23 0 0 1 23 -23 z" fill="#fbfaf8"></path>
+              <circle cx="47" cy="50" r="6.5" fill="#fbfaf8"></circle><circle cx="79" cy="50" r="6.5" fill="#fbfaf8"></circle>
+              <path d="M47 62 L79 62 L63 88 Z" fill="#f09242" stroke="#f09242" stroke-width="6"></path>
+            </g>
+          </svg>
+          <p class="bubble" id="tutorial-say"></p>
+        </div>
+
+        <div class="tutorial-foot">
+          <label class="toggle" id="tutorial-slow-wrap">
+            <input type="checkbox" id="tutorial-slow" />
+            Ver devagar
+          </label>
+          <p class="tutorial-note" id="tutorial-note">
+            Referência gravada pelo autor, vista como num espelho. Não é material oficial de Libras.
+          </p>
+        </div>
+      </div>
+    </dialog>
+
     <script type="module" src="app.js"></script>
   </body>
 </html>

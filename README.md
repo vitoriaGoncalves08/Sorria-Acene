@@ -222,7 +222,13 @@ py -3.12 -m venv .venv                                  # Python 3.10–3.12
 
 .venv\Scripts\python.exe collect_movement_data.py       # qualquer letra A-Z + NADA (gestos e poses)
 .venv\Scripts\python.exe train_movement.py
+
+.venv\Scripts\python.exe export_tutorial.py             # exemplos do pop-up do pinguim
 ```
+
+Clicar numa letra do alfabeto abre um tutorial: o pinguim da logo e uma mão
+em esqueleto repetindo a letra, a partir de uma gravação do autor (não é
+material oficial de Libras).
 
 Os modelos são exportados como **JSON puro** (pesos de uma rede pequena) para
 `extension/lib/models/`, e a extensão os carrega sozinha — não precisa editar

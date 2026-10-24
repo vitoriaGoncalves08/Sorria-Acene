@@ -198,6 +198,25 @@ frequência, seguir o mesmo padrão do `--with-external` e adaptar `train.py`
 — não fiz isso automaticamente de propósito, pra não presumir que você
 sempre vai querer misturar).
 
+## Tutorial do pinguim: exemplos de cada letra
+
+Ao clicar numa letra do alfabeto na extensão, abre um pop-up com o pinguim
+da logo e a mão em esqueleto fazendo aquela letra (em loop, com opção "Ver
+devagar"). Essa mão é uma gravação **sua**, escolhida por:
+
+```bash
+python export_tutorial.py
+```
+
+Para cada letra, ele pega a amostra mais típica (a mais próxima da média de
+todas as amostras da letra) de `landmarks.csv` e `movement_sequences.csv` e
+salva em `extension/lib/models/tutorial_refs.json`. Usa só os seus dados,
+nunca o dataset externo, porque o pop-up diz "referência gravada pelo autor".
+Rode de novo depois de gravar mais dados e recarregue a extensão.
+
+O arquivo fica fora do git (é geometria da sua mão, como os CSVs). Sem ele,
+o pop-up abre avisando que não há gravação daquela letra.
+
 ## Orientação da mão: tudo é espelhado
 
 Todos os dados usam a **mão espelhada**, como num espelho (é o que você vê na

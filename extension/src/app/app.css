@@ -22,6 +22,11 @@
   box-sizing: border-box;
 }
 
+/* sem isso, um display: flex da classe venceria o atributo hidden */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -382,13 +387,22 @@ main {
   display: grid;
   place-items: center;
   aspect-ratio: 1;
+  padding: 0;
   border-radius: 8px;
   background: var(--surface-2);
   border: 1px solid transparent;
+  font: inherit;
   font-size: 0.95rem;
   font-weight: 700;
   color: #fff;
-  transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, color 120ms ease,
+    border-color 120ms ease;
+}
+
+/* cada letra abre o tutorial: o hover avisa que dá para clicar */
+.slot:hover {
+  border-color: var(--track);
 }
 
 /* letras com movimento carregam uma seta: a distinção estática x movimento é
@@ -491,6 +505,120 @@ select.ghost {
 :focus-visible {
   outline: 2px solid var(--beak);
   outline-offset: 2px;
+}
+
+/* ---------- tutorial do pinguim ---------- */
+
+.tutorial {
+  width: min(460px, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--bone);
+}
+
+.tutorial::backdrop {
+  background: rgba(8, 10, 14, 0.72);
+}
+
+.tutorial-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding: 1.1rem;
+}
+
+.tutorial-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tutorial-head h2 {
+  font-size: 0.8rem;
+  color: var(--bone);
+}
+
+.tutorial-close {
+  padding: 0.2rem 0.55rem;
+}
+
+.tutorial-stage {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--ink);
+  border-radius: 10px;
+}
+
+.tutorial-guide {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+/* o pinguim é escuro como o fundo; o disco laranja claro o destaca sem
+   mexer nas cores da logo */
+.penguin {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  padding: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--beak) 28%, var(--surface-2));
+}
+
+/* a nadadeira acena ao abrir: o "acene" do nome */
+.tutorial[open] .flipper {
+  transform-box: view-box;
+  transform-origin: 121px 82px;
+  animation: wave 0.5s ease-in-out 4 alternate;
+}
+
+@keyframes wave {
+  to {
+    transform: rotate(-16deg);
+  }
+}
+
+.bubble {
+  position: relative;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  background: var(--bone);
+  color: var(--ink);
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+/* o "rabinho" do balão apontando para o pinguim */
+.bubble::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  background: var(--bone);
+  transform: translateY(-50%) rotate(45deg);
+}
+
+.tutorial-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.tutorial-note {
+  margin: 0;
+  font-size: 0.72rem;
 }
 
 /* ---------- responsivo ---------- */

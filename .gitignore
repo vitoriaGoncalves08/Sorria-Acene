@@ -24,3 +24,5 @@ extension/lib/models/hand_landmarker.task
 extension/lib/models/face_landmarker.task
 extension/lib/models/letter_classifier.json
 extension/lib/models/movement_classifier.json
+# exemplos do tutorial do pinguim: são gravações suas (training/export_tutorial.py)
+extension/lib/models/tutorial_refs.json
