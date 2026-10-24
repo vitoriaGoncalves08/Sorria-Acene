@@ -26,16 +26,20 @@ Projeto pessoal, em desenvolvimento. O que funciona hoje:
 | | Estado |
 |---|---|
 | 21 letras paradas (pose) | ✅ treinado e funcionando |
-| 5 letras com movimento (H, J, K, X, Z) | ⚠️ pipeline completo e testado, **falta gravar os dados** |
+| 5 letras com movimento (H, J, K, X, Z) | ✅ treinado e funcionando, **mas é a parte mais frágil** (ver Limitações) |
 | Confirmação por sorriso | ✅ |
 | Fala em voz alta (pt-BR) | ✅ |
 | Soletrar palavras | ✅ |
+| Tutorial do pinguim: clique numa letra e veja como fazer | ✅ |
+| Gravar e exportar amostras direto da extensão | ✅ |
 | Identidade visual e ícones | ✅ |
 | Publicação na Chrome Web Store | ❌ não publicado |
 
-A acurácia relatada pelo treino (~99%) é medida com amostras da **mesma
-sessão de gravação** — mesma mão, mesma luz, mesmo dia. O desempenho real é
-menor. Isso é uma limitação conhecida, não um número de marketing.
+O alfabeto inteiro (26 letras) está mapeado. A acurácia relatada pelo treino
+é medida com amostras da **mesma sessão de gravação** — mesma mão, mesma luz,
+mesmo dia: ~99% nas letras paradas e ~87% nas de movimento (com a classe
+`NADA` ainda fraca). O desempenho real é menor. Isso é uma limitação
+conhecida, não um número de marketing.
 
 ## Como funciona
 
@@ -94,6 +98,19 @@ A solução foi separar em dois classificadores e arbitrar a cada quadro:
 - **Classe `NADA`**: levar a mão até a posição também é movimento. Em vez de
   adivinhar por regra o que é gesto e o que é transição, o classificador é
   treinado com exemplos de "mexi a mão à toa" e decide sozinho.
+- **Letra que fica na tela** (`movementHold.js`): ao terminar um Z, a mão
+  termina numa forma que o classificador de poses lê como N ou M. Sem
+  cuidado, a letra certa seria trocada pela errada no instante em que o gesto
+  acaba. O gesto reconhecido fica na tela por um tempo mínimo e enquanto a mão
+  continuar na pose final dele; só sai quando você troca de letra, tira a mão
+  ou passa de 8 s.
+- **Esconde a letra no meio do gesto**: durante um gesto de verdade, o
+  classificador de poses chutava letras erradas em ~75% dos quadros. Agora a
+  tela mostra "gesto em andamento" e só mostra a letra quando há certeza
+  (90% para gestos, 80% para poses).
+- **Taxa de quadros**: o trajeto é reamostrado a 30 quadros/s antes de
+  calcular as características. Sem isso, a mesma letra feita numa câmera de
+  60 quadros/s virava outra coisa (7 inversões de direção contra 2).
 
 ### Por que landmarks e não pixels
 
@@ -150,8 +167,13 @@ Tudo roda localmente:
 - `permissions: []` no manifesto — a câmera é pedida pela própria página, via
   o prompt padrão do navegador
 
-O botão "Baixar amostras confirmadas (CSV)" gera um arquivo **local**, que só
-sai da máquina se você mesmo mandar.
+O botão "Baixar CSV" gera um arquivo **local**, que só sai da máquina se você
+mesmo mandar.
+
+As amostras que você confirma com o sorriso (ou grava pelo modo "Gravar
+gestos como") ficam só na memória da página, até você baixar. Elas guardam
+**pontos da mão**, nunca imagem. Mesmo assim, são dado biométrico: trate o CSV
+como tal antes de compartilhar.
 
 ## Instalação
 
@@ -250,9 +272,15 @@ Não precisam de webcam. Cobrem:
 - **`gestureRecorder.test.mjs`** — a máquina de estados que separa pose de
   gesto, com sequências simuladas: mão parada, gesto normal, tremida curta,
   movimento lento, mão saindo do quadro, dois gestos seguidos.
+- **`movementHold.test.mjs`** — quando a letra de um gesto sai da tela e
+  quando fica (pose final lida como outra letra, mão em movimento, mão
+  perdida, tempo máximo).
+- **`frameRate.test.mjs`** — as características do gesto são iguais em 30 e
+  60 quadros/s.
 - **`parity.test.mjs`** — a paridade Python ↔ JavaScript das características
-  do gesto (ver "O bug que não dá erro"). Requer rodar antes
-  `training/check_parity.py`, que gera o gesto de referência.
+  do gesto (ver "O bug que não dá erro"). Usa um gesto de referência já
+  versionado em `training/data/parity_fixture.json`; para regerá-lo, rode
+  `training/check_parity.py`.
 
 ## Estrutura
 
@@ -269,8 +297,11 @@ extension/
     app/
       app.html/css/js     tela: câmera, leitura, alfabeto, palavra
       gestureRecorder.js  arbitragem parada × movimento
+      movementHold.js     mantém a letra do gesto na tela até a mão sair da pose final
       smileDetector.js    confirmação por sorriso (blendshapes)
       sampleStore.js      amostras confirmadas + exportação CSV
+      tutorial.js         pop-up do pinguim: mão em esqueleto repetindo a letra
+      hand.js             os "ossos" da mão, compartilhados com o vídeo
       sound.js            bipe de confirmação (Web Audio, sem arquivo)
     classifier/
       classifier.js       letras paradas
@@ -287,6 +318,8 @@ training/
   train.py / train_movement.py
   export_model.py            exporta MLP do scikit-learn como JSON
   check_parity.py            gera o gesto de referência para o teste
+  add_samples.py             junta o CSV baixado da extensão à base, com backup e checagens
+  export_tutorial.py         escolhe a gravação típica de cada letra para o tutorial
   process_external_dataset.py
 
 docs/roadmap.md
@@ -352,7 +385,14 @@ vez de editá-los.
 - **Não sou fluente em Libras.** As amostras foram gravadas por mim, conferindo
   com material de referência. Um sinalizante nativo revisando as poses é uma
   melhoria óbvia e bem-vinda.
-- As 5 letras com movimento ainda não têm dados gravados.
+- **As 5 letras com movimento são a parte frágil.** O Z às vezes aparece com
+  menos de 90% de certeza e é ignorado; o H passa raramente de 90% ao vivo; a
+  classe `NADA` (movimento à toa) é reconhecida em menos da metade dos casos
+  nos testes. A causa provável é que gravo e uso em condições diferentes
+  (taxa de quadros, luz), e por isso a extensão tem um modo para gravar
+  gestos no mesmo ambiente em que serão reconhecidos.
+- O tutorial do pinguim mostra **uma gravação minha**, não material oficial
+  de Libras. Está identificado como tal no próprio pop-up.
 - O modelo só viu uma mão (a minha), então tende a errar mais com mãos de
   tamanhos, tons de pele e estilos de sinalização diferentes.
 - Limiares de velocidade do gesto e de sorriso foram calibrados no olho e
