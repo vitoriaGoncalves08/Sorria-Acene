@@ -470,10 +470,6 @@ main {
   accent-color: var(--beak);
 }
 
-select.ghost {
-  background: var(--surface);
-}
-
 .samples {
   display: inline-flex;
   align-items: center;

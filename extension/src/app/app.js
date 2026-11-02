@@ -62,7 +62,6 @@ const el = {
   meterFill: document.getElementById("meter-fill"),
   confidence: document.getElementById("confidence"),
   gestureLog: document.getElementById("gesture-log"),
-  recordAs: document.getElementById("record-as"),
   word: document.getElementById("word"),
   copyWord: document.getElementById("copy-word"),
   clearWord: document.getElementById("clear-word"),
@@ -347,34 +346,13 @@ async function start() {
     // Última decisão sobre um gesto, mostrada na tela: um gesto descartado
     // antes sumia em silêncio, e era impossível saber por quê.
     function logGesture(text, ok) {
-      // gravando ao vivo, a linha "gravado como X" tem prioridade sobre o que
-      // o modelo achou do mesmo gesto, que viria logo em seguida
-      if (recordedNow && !text.startsWith("gravado")) return;
       el.gestureLog.textContent = text;
       el.gestureLog.dataset.ok = String(ok);
     }
 
-    // Modo de gravação ao vivo: todo gesto detectado é guardado com a letra
-    // escolhida, na hora, sem sorrir e sem depender do que o modelo achou. É o
-    // jeito de gravar no MESMO ambiente em que o reconhecimento acontece
-    // (câmera e navegador a ~60 quadros/s) — os scripts de gravação do
-    // training/ capturam a ~30 e não reproduzem isso.
-    let recordedNow = false;
-
     const gestureRecorder = createGestureRecorder({
       onReject: (reason) => logGesture(`gesto descartado: ${reason}`, false),
       onGesture: (frames, times) => {
-        recordedNow = false;
-        const recordLabel = el.recordAs.value;
-        if (recordLabel) {
-          addGesture(frames, times, recordLabel);
-          updateConfirmCount();
-          recordedNow = true;
-          logGesture(
-            `gravado como ${recordLabel} (${getGestureCount()} gestos nesta sessão, ${frames.length} quadros)`,
-            true
-          );
-        }
         if (!movementIsReady()) {
           logGesture("gesto detectado, mas o modelo de movimento não foi treinado", false);
           return;
@@ -418,8 +396,6 @@ async function start() {
           },
           performance.now()
         );
-        // já foi guardado pelo modo de gravação: um sorriso depois não duplica
-        if (recordedNow && movementHold.current) movementHold.current.saved = true;
       },
     });
 

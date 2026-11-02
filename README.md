@@ -31,7 +31,7 @@ Projeto pessoal, em desenvolvimento. O que funciona hoje:
 | Fala em voz alta (pt-BR) | ✅ |
 | Soletrar palavras | ✅ |
 | Tutorial do pinguim: clique numa letra e veja como fazer | ✅ |
-| Gravar e exportar amostras direto da extensão | ✅ |
+| Exportar as amostras confirmadas com o sorriso | ✅ |
 | Identidade visual e ícones | ✅ |
 | Publicação na Chrome Web Store | ❌ não publicado |
 
@@ -170,8 +170,8 @@ Tudo roda localmente:
 O botão "Baixar CSV" gera um arquivo **local**, que só sai da máquina se você
 mesmo mandar.
 
-As amostras que você confirma com o sorriso (ou grava pelo modo "Gravar
-gestos como") ficam só na memória da página, até você baixar. Elas guardam
+As amostras que você confirma com o sorriso ficam só na memória da página,
+até você baixar. Elas guardam
 **pontos da mão**, nunca imagem. Mesmo assim, são dado biométrico: trate o CSV
 como tal antes de compartilhar.
 
@@ -389,8 +389,7 @@ vez de editá-los.
   menos de 90% de certeza e é ignorado; o H passa raramente de 90% ao vivo; a
   classe `NADA` (movimento à toa) é reconhecida em menos da metade dos casos
   nos testes. A causa provável é que gravo e uso em condições diferentes
-  (taxa de quadros, luz), e por isso a extensão tem um modo para gravar
-  gestos no mesmo ambiente em que serão reconhecidos.
+  (taxa de quadros, luz).
 - O tutorial do pinguim mostra **uma gravação minha**, não material oficial
   de Libras. Está identificado como tal no próprio pop-up.
 - O modelo só viu uma mão (a minha), então tende a errar mais com mãos de
