@@ -171,9 +171,8 @@ O botão "Baixar CSV" gera um arquivo **local**, que só sai da máquina se voc�
 mesmo mandar.
 
 As amostras que você confirma com o sorriso ficam só na memória da página,
-até você baixar. Elas guardam
-**pontos da mão**, nunca imagem. Mesmo assim, são dado biométrico: trate o CSV
-como tal antes de compartilhar.
+até você baixar. Elas guardam **pontos da mão**, nunca imagem. Mesmo assim, são
+dado biométrico: trate o CSV como tal antes de compartilhar.
 
 ## Instalação
 
@@ -191,8 +190,8 @@ Requisitos: **Google Chrome**, **Node.js** (só para preparar os arquivos) e
 **1. Clone e prepare as dependências**
 
 ```bash
-git clone https://github.com/<seu-usuario>/sorria-e-acene.git
-cd sorria-e-acene/extension
+git clone https://github.com/vitoriaGoncalves08/Sorria-Acene.git
+cd Sorria-Acene/extension
 npm install
 npm run vendor    # copia o MediaPipe para lib/ — o CSP do Manifest V3 não permite CDN
 ```
@@ -372,7 +371,8 @@ vez de editá-los.
   `HandLandmarker` e `FaceLandmarker`, sob Apache 2.0.
 - **Brazilian Sign Language Alphabet Dataset** — Passos, B. T.; Fernandes,
   A. M. R.; Comunello, E. (2020), Mendeley Data, V5.
-  [doi:10.17632/k4gs3bmx5k.5](http://dx.doi.org/10.17632/k4gs3bmx5k.5)
+  [doi:10.17632/k4gs3bmx5k.5](http://dx.doi.org/10.17632/k4gs3bmx5k.5), licença
+  CC BY 4.0.
 
   **Ressalva importante**: esse dataset foi montado a partir de imagens de
   **ASL** (língua de sinais americana), selecionando as 15 letras cujo formato

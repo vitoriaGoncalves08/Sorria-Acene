@@ -176,13 +176,15 @@ jeito. E há um viés: só entra o que o modelo **já reconheceu** (o rótulo é
 que a extensão mostrou e você confirmou), então esses dados reforçam o que ele
 sabe e quase não ensinam os casos em que ele erra.
 
-**Como incorporar** (mesmo espírito "separado até você decidir juntar" do
-dataset externo acima): salve o CSV baixado em `training/data/`, dê uma
-olhada rápida nas linhas antes de confiar nelas, e se quiser usá-lo no
-treino, é só concatenar manualmente com `landmarks.csv` (ou, se for usar com
-frequência, seguir o mesmo padrão do `--with-external` e adaptar `train.py`
-— não fiz isso automaticamente de propósito, pra não presumir que você
-sempre vai querer misturar).
+**Como incorporar**: dê uma olhada rápida nas linhas antes de confiar nelas e
+rode `add_samples.py`. Ele detecta o tipo do arquivo, faz backup da base e
+recusa colunas erradas, mão na orientação trocada e linhas repetidas:
+
+```powershell
+.venv\Scripts\python.exe add_samples.py "C:\Users\voce\Downloads\gestos_confirmados_XXXX.csv"
+```
+
+Depois, rode o treino que o próprio script indica.
 
 ## Tutorial do pinguim: exemplos de cada letra
 

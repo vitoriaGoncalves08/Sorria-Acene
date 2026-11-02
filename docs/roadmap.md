@@ -1,4 +1,4 @@
-# Roadmap — Tradutor de Libras
+# Roadmap — Sorria e Acene
 
 ## Fase 1 — MVP: alfabeto, só extensão (atual)
 
@@ -89,19 +89,16 @@ cabeça (testado antes, descartado): sorrir não mexe a mão que está fazendo a
 letra, então não atrapalha o reconhecimento como o aceno atrapalhava. Ao
 confirmar: toca um bipe sintetizado (`sound.js`), fala a letra, e guarda a
 amostra em memória (`sampleStore.js`) — um botão na extensão baixa essas
-amostras confirmadas como CSV, no mesmo formato de
-`training/data/landmarks.csv`, pra você incorporar no treino manualmente
-depois (terceira fonte de dado, junto de `landmarks.csv` e
-`landmarks_external.csv` — mesmo espírito "combina só quando eu pedir", ver
-`training/README.md`). Modelo de rosto é opcional: sem ele baixado, a
+amostras confirmadas como CSV, pra você incorporar no treino depois com
+`training/add_samples.py` (ver `training/README.md`). Modelo de rosto é opcional: sem ele baixado, a
 extensão reconhece letras normalmente, só não confirma. Limiares de
 score/tempo do sorriso são um chute inicial, precisam de ajuste ao vivo
 testando com câmera de verdade.
 
-Só letras **paradas** viram amostra confirmada: o CSV tem o formato de uma
-pose única (63 números de um quadro só), que não representa um gesto — salvar
-uma letra de movimento ali colocaria uma foto solta do meio do movimento no
-dataset estático.
+Poses e gestos têm CSVs separados: uma pose é um quadro só (63 números), no
+formato de `landmarks.csv`; um gesto é a sequência inteira de quadros, no
+formato de `movement_sequences.csv`. Salvar um gesto como pose colocaria uma
+foto solta do meio do movimento no dataset estático.
 
 **Limiares que precisam de ajuste ao vivo**: os números do
 `gestureRecorder.js` (velocidade pra considerar que começou/parou um gesto,
